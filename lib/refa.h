@@ -1,0 +1,6 @@
+#include "parser.h"
+#include "tree_to_nfa.h"
+#include "nfa.h"
+#include "nfa_to_dfa.h"
+#include "dfa_to_nfa.h"
+#include "dfa.h"

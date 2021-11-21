@@ -1,0 +1,66 @@
+DFA file format:
+
+version #0.1.2
+bytes		value				hex
+#filetype magic number
+ 0- 7		\x57 DFA \x16\x16\x16\x16	0x1616161641464457
+ 8-11		ver#
+#version of format (b1.b2.b34)
+12-15		\x00 \x01 \x0001
+16-19		cnt#
+#number of dfa states
+20-27		dfa->state_cnt (unsigned)
+#bits per state's transition
+28-31		dfa->bps (unsigned)
+32-35		#fst
+#first index number
+36-43		dfa->first_index
+#dfa comment size
+44-51		dfa->comment_size
+#dfa comment (with \0)
+52-..		dfa->comment
+#nodes storage type
+..-..+8		alg:flat | alg:gzip
+#dfa nodes data
+..-..
+      0- 7	state's flags (only first byte)
+      8-..	transitions
+
+version #0.1.1
+bytes		value				hex
+#filetype magic number
+ 0- 7		\x57 DFA \x16\x16\x16\x16	0x1616161641464457
+ 8-11		ver#
+#version of format (b1.b2.b34)
+12-15		\x00 \x01 \x0001
+16-19		cnt#
+#number of dfa states
+20-27		dfa->state_cnt (unsigned)
+#bits per state's transition
+28-31		dfa->bps (unsigned)
+32-35		#fst
+#first index number
+36-43		dfa->first_index
+#nodes storage type
+44-51		alg:flat | alg:gzip
+#dfa nodes data
+52-..
+      0- 7	state's flags (only first byte)
+      8-..	transitions
+
+version #0.1.0
+bytes		value				hex
+#filetype magic number
+ 0- 7		\x57 DFA \x16\x16\x16\x16	0x1616161641464457
+ 8-11		ver#
+#version of format (b1.b2.b34)
+12-15		\x00 \x01 \x0000
+16-19		cnt#
+#number of dfa states
+20-27		dfa->node_cnt
+#first index number
+28-35		dfa->first_index
+#nodes storage type
+36-43		alg:flat | alg:gzip
+#dfa nodes data
+44-		dfa->nodes
