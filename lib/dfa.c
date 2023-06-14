@@ -4,13 +4,17 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
 #include <stdio.h>
 
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 #include <zlib.h>
 #define DFA_ZLIB_CHUNK_SIZE	(4096 * 16)
 #define DFA_ZLIB_LEVEL		(9)
@@ -878,14 +882,14 @@ int dfa_save_to_file(struct dfa *src, char *filename)
 	fwrite(&tmp64, sizeof(tmp64), 1, dst);
 	fwrite(src->comment, 1, src->comment_size, dst);
 
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 	fwrite("alg:gzip", 8, 1, dst);
 #else
 	fwrite("alg:flat", 8, 1, dst);
 #endif
 
 	unsigned char in[256 * 8 + 8];
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 	unsigned char out[DFA_ZLIB_CHUNK_SIZE];
 	int	zret;
 
@@ -900,14 +904,14 @@ int dfa_save_to_file(struct dfa *src, char *filename)
 		goto out_err;
 #endif
 	for (size_t i = 0; i < src->state_cnt; i++) {
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 		int	flush = (i == src->state_cnt - 1 ? Z_FINISH : Z_NO_FLUSH);
 #endif
 		in[0] = src->flags[i];
 
 		for (int j = 0; j < 256; j++)
 			((uint64_t *)in)[j + 1] = dfa_get_trans(src, i, j);
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 		zstrm.avail_in = sizeof(uint64_t) * (256 + 1);
 		zstrm.next_in = in;
 
@@ -925,7 +929,7 @@ int dfa_save_to_file(struct dfa *src, char *filename)
 #endif
 	}
 
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 	deflateEnd(&zstrm);
 out_err:
 #endif
@@ -1019,7 +1023,7 @@ int dfa_load_from_file(struct dfa *dst, char *filename)
 		break;*/
 		goto out_err;
 	}
-#ifdef _USE_ZLIB
+#ifdef USE_ZLIB
 	case _4CHAR_TO_UINT('g', 'z', 'i', 'p'):
 	{
 		int	zret;

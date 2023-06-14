@@ -7,6 +7,8 @@
 #ifndef __NFA_H
 #define __NFA_H
 
+#include <stddef.h>
+
 struct nfa {
 	char		*comment; /* char string with any info */
 	size_t		comment_size; /* size of allocated memory */

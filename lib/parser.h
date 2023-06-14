@@ -7,6 +7,8 @@
 #ifndef __PARSER_H
 #define __PARSER_H
 
+#include <stddef.h>
+
 #define GET_BIT(a,b) (((a)[(b) / 8] >> ((b) % 8)) & 1)
 #define SET_BIT(a,b) (a)[(b) / 8] |= (1 << ((b) % 8))
 #define RST_BIT(a,b) (a)[(b) / 8] &= ~(1 << ((b) % 8))

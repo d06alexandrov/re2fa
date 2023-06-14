@@ -6,6 +6,7 @@
 
 #ifndef __SIMPLE_LIST_H
 #define __SIMPLE_LIST_H
+
 #include <stddef.h>
 
 #define SLIST_ARRAY	(0)

@@ -6,7 +6,9 @@
 
 #ifndef __DFA_H
 #define __DFA_H
+
 #include <stdint.h>
+#include <stddef.h>
 
 #define DFA_FLAG_LAST		(0x01)
 #define DFA_FLAG_DEADEND	(0x02)

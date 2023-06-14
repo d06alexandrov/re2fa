@@ -5,6 +5,10 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -17,10 +21,8 @@
 #include "lib/tree_to_nfa.h"
 #include "lib/nfa_to_dfa.h"
 
-#include "version_info.h"
-
-const char *argp_program_version = NULL;
-const char *argp_program_bug_address = "d06alexandrov@gmail.com";
+const char *argp_program_version = PACKAGE_VERSION;
+const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 static char doc[] =
 		"A program to manipulate with regexp and fa.\n"
@@ -136,7 +138,6 @@ int main_dfa_join(struct dfa *dfa, int cnt, int t_cnt);
 
 int main(int argc, char **argv)
 {
-	argp_program_version = git_version;
 	int	ret = 0;
 	arguments.input		= NULL;
 	arguments.input_type	= 0;
