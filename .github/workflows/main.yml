@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install prerequisites
+        run: |
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            brew install automake argp-standalone
+          fi
+      - name: Autoreconf
+        run: autoreconf -i
+      - name: Configure
+        run: ./configure
+      - name: Make
+        run: make
