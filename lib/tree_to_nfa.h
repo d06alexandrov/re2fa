@@ -4,17 +4,26 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
-#ifndef __TREE_TO_NFA_H
-#define __TREE_TO_NFA_H
+/**
+ * @addtogroup conversion conversion
+ * @{
+ */
+
+#ifndef REFA_TREE_TO_NFA_H
+#define REFA_TREE_TO_NFA_H
 
 #include "nfa.h"
 #include "parser.h"
 
-/*
- * @1 - pointer to EXISTING INITIALIZED nfa
- * @2 - pointer to regexp_tree
- * value: 0 if ok
+/**
+ * Converting regexp tree to NFA.
+ *
+ * Converts regexp tree to initialized empty NFA with lambda-transitions.
+ *
+ * @param nfa		pointer to the existing and initialized empty NFA
+ * @param re_tree	pointer to the source regexp tree
+ * @return		0 on success
  */
-int convert_tree_to_lambdanfa(struct nfa *, struct regexp_tree *);
+int convert_tree_to_lambdanfa(struct nfa *nfa, struct regexp_tree *re_tree);
 
-#endif
+#endif /** REFA_TREE_TO_NFA_H @} */
