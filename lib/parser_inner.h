@@ -4,8 +4,8 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
-#ifndef __PARSER_INNER_H
-#define __PARSER_INNER_H
+#ifndef REFA_PARSER_INNER_H
+#define REFA_PARSER_INNER_H
 
 /* types of backslash expressions */
 enum bs_type {
@@ -28,4 +28,4 @@ extern const unsigned char	backslash_replace_table_cc[];
 
 extern void set_charset_bits_cc(unsigned char *, unsigned char);
 
-#endif
+#endif /* REFA_PARSER_INNER_H */
