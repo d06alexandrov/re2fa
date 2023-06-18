@@ -1,0 +1,40 @@
+name: Pages by Doxygen
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  publish-pages:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Install Doxygen
+        run: |
+          sudo apt update
+          sudo apt install doxygen
+      - name: Autoreconf
+        run: autoreconf -i
+      - name: Configure
+        run: ./configure
+      - name: Make
+        run: make doxygen-run
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: ./doxygen/html
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
