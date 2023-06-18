@@ -4,8 +4,13 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
-#ifndef __PARSER_H
-#define __PARSER_H
+/**
+ * @addtogroup expression_parser expression parser
+ * @{
+ */
+
+#ifndef REFA_PARSER_H
+#define REFA_PARSER_H
 
 #include <stddef.h>
 
@@ -53,30 +58,54 @@ struct regexp_node {
 	struct regexp_node	*parent;
 };
 
+/**
+ * special tree-like structure to store parsed regular expression
+ */
 struct regexp_tree {
-	char			*comment;
-	size_t			comment_size;
-	struct regexp_node	root;
+	/**
+	 * char string with arbitrary information
+	 * using mainly for storing original regular expression
+	 */
+	char *comment;
+
+	/**
+	 * size of allocated for the comment memory
+	 */
+	size_t comment_size;
+
+	/**
+	 * root of the regular expression's tree
+	 */
+	struct regexp_node root;
 };
 
-/*
- * parse string with regexp to tree (regexp_node's)
- * @1	regexp string
- * @2	pointer to error, if occured
- * result:
- *	  NULL if error
- *	  otherwise pointer to regexp tree
+/**
+ * Parse regular expression into tree.
+ *
+ * Parses regular expression and creates regexp tree if possible.
+ *
+ * @param regexp	regular expression to parse
+ * @param err		reserved parameter, must be NULL
+ * @return		pointer to the regexp tree on success, otherwise NULL
  */
-void *regexp_to_tree(const char *, const char **);
+struct regexp_tree *regexp_to_tree(const char *regexp, const char **err);
 
-/*
- * frees allocated memory
+/**
+ * Free regexp tree.
+ *
+ * Frees regexp tree structure.
+ *
+ * @param re_tree	pointer to the regexp tree
  */
-void regexp_tree_free(struct regexp_tree *);
+void regexp_tree_free(struct regexp_tree *re_tree);
 
-/*
- * prints regexp_tree for debug purposes
+/**
+ * Print regexp tree.
+ *
+ * Prints regexp tree structure for debug purpose.
+ *
+ * @param re_tree	pointer to the regexp tree
  */
-void regexp_tree_print(struct regexp_tree *);
+void regexp_tree_print(struct regexp_tree *re_tree);
 
-#endif
+#endif /** REFA_PARSER_H @} */

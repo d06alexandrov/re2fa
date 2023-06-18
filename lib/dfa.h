@@ -4,87 +4,270 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
-#ifndef __DFA_H
-#define __DFA_H
+/**
+ * @addtogroup dfa dfa
+ * @{
+ */
+
+#ifndef REFA_DFA_H
+#define REFA_DFA_H
 
 #include <stdint.h>
 #include <stddef.h>
 
-#define DFA_FLAG_LAST		(0x01)
+#define DFA_FLAG_FINAL		(0x01)
 #define DFA_FLAG_DEADEND	(0x02)
 
+/**
+ * structure that represents Deterministic Finite-state Automaton (DFA)
+ */
 struct dfa {
-	char	*comment; /* char string with any info */
-	size_t	comment_size; /* size of allocated memory */
+	/**
+	 * char string with arbitrary information
+	 * using mainly for storing original regular expression
+	 */
+	char *comment;
 
-	size_t	state_cnt; /* number of dfa states */
-	size_t	state_malloc_cnt; /* allocated dfa states (>= state_cnt) */
+	/**
+	 * size of allocated for the comment memory
+	 */
+	size_t comment_size;
 
-	uint8_t		bps; /* bits per state index */
-	size_t		state_size; /* bytes per state */
-	uint64_t	state_max_cnt; /* maximum size of dfa (0xFF..FF by default) */
+	/**
+	 * total number of DFA states
+	 */
+	size_t state_cnt;
 
-	void	*trans; /* array of transitions (q -a-> trans[q][a]) */
-	uint8_t	*flags; /* array of states' flags such as LAST and DEADEND */
+	/**
+	 * number of allocated states (greater or equal to the state_cnt)
+	 */
+	size_t state_malloc_cnt;
 
-	size_t	first_index;	/* initial state's index */
+	/**
+	 * bits per state - how many bits are used to represent one state number
+	 * always is a power of 2
+	 */
+	uint8_t bps; /* bits per state index */
 
-	void	*external; /* unknown */
-	size_t	external_size; /* unknown */
+	/**
+	 * size of one row of the transition table
+	 * equals to 256 * bps
+	 */
+	size_t state_size;
+
+	/**
+	 * maximum size of dfa
+	 * equals to 0xFFFFFFFFFFFFFFFF
+	 */
+	uint64_t state_max_cnt;
+
+	/**
+	 * array that holds all transitions between states
+	 */
+	void *trans;
+
+	/**
+	 * array that holds information about states' types such as 'FINAL'
+	 */
+	uint8_t *flags;
+
+	/**
+	 * index of the first (initial) state
+	 */
+	size_t first_index;
 };
 
-/* dfa initialization */
-int dfa_alloc(struct dfa *dst);
-/* dfa initialization, @2 -- maximum size of dfa */
+/**
+ * Initialization of DFA structure.
+ *
+ * Simple initialization of the DFA object with 64 bit states' indexes.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @return	0 on success
+ */
+int dfa_alloc(struct dfa *dfa);
+
+/**
+ * Initialization of DFA structure.
+ *
+ * Simple initialization of the DFA object but with explicitly choosen
+ * maximum state's index
+ *
+ * @param dfa		pointer to the dfa structure
+ * @param max_cnt	maximum number of states
+ * @return		0 on success
+ */
 int dfa_alloc2(struct dfa *dfa, size_t max_cnt);
+
+/**
+ * Update maximum DFA size parameter.
+ *
+ * Explicitly update maximum DFA size parameter. Must be no less than
+ * the current number of states
+ *
+ * @param dfa		pointer to the dfa structure
+ * @param max_cnt	new maximum number of states
+ * @return		0 on success
+ */
 int dfa_change_max_size(struct dfa *dfa, size_t max_cnt);
-/* dfa clear */
+
+/**
+ * Deinitialization of DFA structure.
+ *
+ * Just freeing memory allocated for the DFA inner fields.
+ *
+ * @param dfa	pointer to the dfa structure
+ */
 void dfa_free(struct dfa *dfa);
-/* dfa copy */
-//int dfa_copy(struct dfa *, struct dfa *);
-/* joins dst and src (dst|src) and saves to dst */
+
+/**
+ * Join two DFA.
+ *
+ * Joins two dfa - dst and src (dst|src) and saves the result to dst.
+ *
+ * @param dst	pointer to the dfa structure where result will be stored
+ * @param src	pointer to the dfa structure that will be joined to the dst
+ * @return	0 on success
+ */
 int dfa_join(struct dfa *dst, struct dfa *src);
-/* appends second dfa to first dfa
- * result: first = first .* second
+
+/**
+ * Append one DFA to another.
+ *
+ * Appends the second dfa to the first with 'anything between' (first .* second)
+ * and saves the result to first.
+ *
+ * @param first		pointer to the dfa structure where result will be stored
+ * @param second	pointer to the dfa structure that will be appended to the first
+ * @return		0 on success
  */
 int dfa_append(struct dfa *first, struct dfa *second);
-/* rebuild dfa to decrease state count */
-int dfa_minimize(struct dfa *dst);
-/* add node to dfa, returns new index to size_t ptr */
-//int dfa_add_node(struct dfa *, size_t *);
-/* compress dfa to minimize consumed memory */
-int dfa_compress(struct dfa *);
-/* add transition to dfa
- * @2 --@3--> @4
- */
-int dfa_add_trans(struct dfa *, size_t, unsigned char, size_t);
-/* get transition of dfa
- * returns @2 --@3-->
- */
-size_t dfa_get_trans(struct dfa *, size_t, unsigned char);
 
-int dfa_state_is_last(struct dfa *, size_t);
-int dfa_state_set_last(struct dfa *, size_t, int);
-/* state is a deadend if (state -a-> state) for every a */
+/**
+ * Minimize DFA.
+ *
+ * Minimizes number of states of the provided DFA.
+ *
+ * @param dfa	pointer to the dfa structure that will be minimized
+ * @return	0 on success
+ */
+int dfa_minimize(struct dfa *dfa);
+
+/**
+ * Compress DFA representation.
+ *
+ * Compresses dfa inner data representation to minimize consumed memory.
+ *
+ * @param dfa	pointer to the dfa structure which memory will be minimized
+ * @return	0 on success
+ */
+int dfa_compress(struct dfa *dfa);
+
+/**
+ * Add transition to DFA.
+ *
+ * Add transition between two states.
+ *
+ * @param dfa	pointer to the dfa structure where transition will be added
+ * @param from	left state's index
+ * @param mark	label of transition
+ * @param to	right state's index
+ * @return	0 on success
+ */
+int dfa_add_trans(struct dfa *dfa, size_t from, unsigned char mark, size_t to);
+
+/**
+ * Get DFA transitions's destination.
+ *
+ * Derives destination of the transition by source state's index and
+ * transition's mark.
+ *
+ * @param dfa	pointer to the dfa structure where transition will be added
+ * @param from	lef state's index
+ * @param mark	label of transition
+ * @return	index of the destination's state
+ */
+size_t dfa_get_trans(struct dfa *dfa, size_t from, unsigned char mark);
+
+/**
+ * Check if DFA's state is an accepting (final) state.
+ *
+ * Checks if the state with provided index is marked as final.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @param state	index of the DFA's state
+ * @return	0 if the state with provided index is final
+ */
+int dfa_state_is_final(struct dfa *dfa, size_t state);
+
+/**
+ * Mark or unmark the DFA's state as a final state.
+ *
+ * Marks the state with provided index as final or remove this mark.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @param state	index of the DFA's state
+ * @param final	0 to clear 'final' mark and 1 to set
+ * @return	0 on success
+ */
+int dfa_state_set_final(struct dfa *dfa, size_t state, int final);
+
+/**
+ * Check if the DFA's state is a 'deadend'.
+ *
+ * Checks if all transitions from the state are go to that state.
+ * So another state can never be reached.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @param state	index of the DFA's state
+ * @return	0 if the state with provided index is a 'deadend'
+ */
 int dfa_state_is_deadend(struct dfa *dfa, size_t state);
-int dfa_state_set_deadend(struct dfa *, size_t, int); /* for inner purposes only */
-int dfa_state_calc_deadend(struct dfa *, size_t);
-/* add state to dfa and save index to @2*/
-int dfa_add_state(struct dfa *, size_t *);
-/* add @2 states to dfa and save first index to @3 */
-int dfa_add_n_state(struct dfa *, size_t, size_t *);
 
-/* saves dfa to file @2 */
-int dfa_save_to_file(struct dfa *, char *);
-/* loads dfa from file @2 */
-int dfa_load_from_file(struct dfa *, char *);
+/**
+ * Add new state to the DFA.
+ *
+ * Adds new empty state to the DFA and returns the newly created state's index.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @param index	place where new index will be saved if not NULL
+ * @return	0 on success
+ */
+int dfa_add_state(struct dfa *dfa, size_t *index);
 
+/**
+ * Add multiple new states to the DFA.
+ *
+ * Adds multiple new empty states to the DFA and returns index of the first
+ * newly created state.
+ *
+ * @param dfa	pointer to the dfa structure
+ * @param cnt	how many states must be added
+ * @param index	place where new index will be saved if not NULL
+ * @return	0 on success
+ */
+int dfa_add_n_state(struct dfa *dfa, size_t cnt, size_t *index);
 
-/* for debug purposes */
-void dfa_print(struct dfa *);
-/* node initialization */
-//int dfa_node_alloc(struct dfa_node *);
-/* node clear */
-//void dfa_node_clear(struct dfa_node *);
+/**
+ * Save the dfa to the file.
+ *
+ * Saves the DFA structure to the given file.
+ *
+ * @param dfa		pointer to the dfa structure
+ * @param filename	path where dfa structure must be saved
+ * @return		0 on success
+ */
+int dfa_save_to_file(struct dfa *dfa, char *filename);
 
-#endif
+/**
+ * Load the dfa from the file.
+ *
+ * Loads the DFA structure from the given file.
+ *
+ * @param dfa		pointer to the dfa structure
+ * @param filename	path to the file with the saved dfa
+ * @return		0 on success
+ */
+int dfa_load_from_file(struct dfa *dfa, char *filename);
+
+#endif /** REFA_DFA_H @} */

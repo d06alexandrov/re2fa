@@ -23,7 +23,7 @@ int convert_tree_to_lambdanfa(struct nfa *dst, struct regexp_tree *src)
 	nfa_add_node(dst, &last);
 
 	dst->first_index = first;
-	dst->nodes[last].islast = 1;
+	dst->nodes[last].isfinal = 1;
 
 	regexp_node_to_subnfa(dst, first, last, &(src->root));
 

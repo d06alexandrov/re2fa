@@ -583,6 +583,7 @@ int regexp_node_add_child(struct regexp_node *dst, struct regexp_node **new)
 
 	return 0;
 }
+
 struct regexp_node *regexp_node_last_child(struct regexp_node *src)
 {
 	if (!(src->type & (RE_CONCAT | RE_UNION)) || src->data.childs.cnt == 0)
@@ -818,7 +819,7 @@ void first_pass_result_print(struct first_pass_result *result,
 				    const char *ptr);
 void second_pass_result_print(struct second_pass_result *sp);
 
-void *regexp_to_tree(const char *regexp, const char **err)
+struct regexp_tree *regexp_to_tree(const char *regexp, const char **err)
 {
 	struct regexp_tree	*result = NULL;
 
@@ -827,7 +828,7 @@ void *regexp_to_tree(const char *regexp, const char **err)
 
 	int	ret;
 
-const char *err_ptr;
+	const char *err_ptr;
 
 	ret = regexp_first_pass(&fp, regexp, &err_ptr);
 

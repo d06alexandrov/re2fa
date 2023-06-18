@@ -134,13 +134,13 @@ int convert_nfa_to_dfa(struct dfa *dst, struct nfa *src)
 
 		for (size_t k = 0; k < ptr->elem_cnt && !to_loop; k++) {
 			nindex = ((size_t *)slist_get_element(ptr, k))[0];
-			if (src->nodes[nindex].self_closed && src->nodes[nindex].prelast)
+			if (src->nodes[nindex].self_closed && src->nodes[nindex].prefinal)
 				to_loop = 1;
 		}
 		if (to_loop) {
 			if (slindex == 0) {
 				dfa_add_state(dst, &slindex);
-				dfa_state_set_last(dst, slindex, 1);
+				dfa_state_set_final(dst, slindex, 1);
 				for (int j = 0; j < 256; j++)
 					dfa_add_trans(dst, slindex, j, slindex);
 				slist_alloc(&tmp);
@@ -164,7 +164,7 @@ int convert_nfa_to_dfa(struct dfa *dst, struct nfa *src)
 				nptr = &(src->nodes[nindex]);
 				for (size_t l = 0; l < nptr->trans_cnt[j]; l++) {
 					slist_insert(&tmp, &(nptr->trans[j][l]), NULL);
-					if (src->nodes[nptr->trans[j][l]].islast)
+					if (src->nodes[nptr->trans[j][l]].isfinal)
 						end = 1;
 					cnt++;
 				}
@@ -172,7 +172,7 @@ int convert_nfa_to_dfa(struct dfa *dst, struct nfa *src)
 			if (tmp.elem_cnt == 0) {
 				if (sdindex == 0) {
 					dfa_add_state(dst, &sdindex);
-					dfa_state_set_last(dst, sdindex, 0);
+					dfa_state_set_final(dst, sdindex, 0);
 					slist_insert(&states, &tmp, NULL);
 					for (int k = 0; k < 256; k++)
 						dfa_add_trans(dst, sdindex, k, sdindex);
@@ -202,9 +202,9 @@ int convert_nfa_to_dfa(struct dfa *dst, struct nfa *src)
 
 					dfa_add_state(dst, &nindex);
 					if (end)
-						dfa_state_set_last(dst, nindex, 1);
+						dfa_state_set_final(dst, nindex, 1);
 					else
-						dfa_state_set_last(dst, nindex, 0);
+						dfa_state_set_final(dst, nindex, 0);
 				} else {
 					printf("some problems\n");
 				}

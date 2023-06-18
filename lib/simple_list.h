@@ -4,8 +4,8 @@
  * Authors: Dmitriy Alexandrov <d06alexandrov@gmail.com>
  */
 
-#ifndef __SIMPLE_LIST_H
-#define __SIMPLE_LIST_H
+#ifndef REFA_SIMPLE_LIST_H
+#define REFA_SIMPLE_LIST_H
 
 #include <stddef.h>
 
@@ -64,4 +64,4 @@ void slist_debug_printf(struct slist *src);
 	} while (0)
 
 
-#endif /* __SIMPLE_LIST_H */
+#endif /* REFA_SIMPLE_LIST_H */
