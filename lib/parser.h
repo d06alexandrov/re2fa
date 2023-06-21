@@ -13,11 +13,42 @@
 #define REFA_PARSER_H
 
 #include <stddef.h>
+#include <stdbool.h>
 
-#define GET_BIT(a,b) (((a)[(b) / 8] >> ((b) % 8)) & 1)
-#define SET_BIT(a,b) (a)[(b) / 8] |= (1 << ((b) % 8))
-#define RST_BIT(a,b) (a)[(b) / 8] &= ~(1 << ((b) % 8))
-/* binary `or' for `cnt' bits from `off2' to `off2' */
+/**
+ * Get a bit value from an array by it's index
+ *
+ * \param a	char* array
+ * \param b	bit's index
+ */
+#define GET_BIT(a,b) ((((char*)(a))[(b) / 8] >> ((b) % 8)) & 1)
+
+/**
+ * Set a bit value to 1 from an array by it's index
+ *
+ * \param a	char* array
+ * \param b	bit's index
+ */
+#define SET_BIT(a,b) ((char*)(a))[(b) / 8] |= (1 << ((b) % 8))
+
+/**
+ * Set a bit value to 0 from an array by it's index
+ *
+ * \param a	char* array
+ * \param b	bit's index
+ */
+#define RST_BIT(a,b) ((char*)(a))[(b) / 8] &= ~(1 << ((b) % 8))
+
+/* binary `or' for `cnt' bits from `off1' to `off2' */
+/**
+ * Apply binary 'or' operation to two continous bit's group
+ * and save it to the first group.
+ *
+ * \param a	char* array
+ * \param off1	offset of the first (destination) group
+ * \param off2	offset of the second (source) group
+ * \param cnt	width of bit's group
+ */
 #define OR_BIT_GRP(a,off1,off2,cnt)		\
 	do {								\
 		for (int _ob_cnt = 0; _ob_cnt < (cnt); _ob_cnt++)	\
@@ -25,36 +56,101 @@
 				SET_BIT((a), (off1) + _ob_cnt);		\
 	} while (0)
 
+/**
+ * structure that represents regular expression's character class
+ */
 struct re_charclass {
-	int		inverse;
-	unsigned char	data[256 / 8];
+	/**
+	 * bitmask of characters in the class
+	 */
+	unsigned char data[256 / 8];
+
+	/**
+	 * inverted mask flag
+	 */
+	bool inverse;
 };
 
-struct regexp_node {
-	enum re_type {
-		RE_SPECIAL	= 0x01,/* temporary for ^ and $ */
-				       /* deprecated! */
-		RE_CHAR		= 0x02,
-		RE_CHARCLASS	= 0x04,
-		RE_CONCAT	= 0x08,
-		RE_UNION	= 0x10,
-		RE_EMPTY	= 0x20
-	} type;
+/**
+ * node's type
+ */
+enum re_node_type {
+	/**
+	 * deprecated
+	 */
+	RE_SPECIAL	= 0x01,
+	/**
+	 * one character 'a'
+	 */
+	RE_CHAR		= 0x02,
+	/**
+	 * character class '[abc]'
+	 */
+	RE_CHARCLASS	= 0x04,
+	/**
+	 * concatenation of nodes 'abc'
+	 */
+	RE_CONCAT	= 0x08,
+	/**
+	 * union of nodes 'a|b|c'
+	 */
+	RE_UNION	= 0x10,
+	/**
+	 * empty node
+	 */
+	RE_EMPTY	= 0x20
+};
 
+/**
+ * node of the regexp_tree
+ */
+struct regexp_node {
+	/**
+	 * node type
+	 */
+	enum re_node_type type;
+
+	/**
+	 * number of node repetition
+	 */
 	struct {
 		int min, max;
 	} repeat;
 
+	/**
+	 * node's data
+	 */
 	union {
-		unsigned char		c_val;
-		struct re_charclass	cc_data;
+		/**
+		 * RE_CHAR value
+		 */
+		unsigned char c_val;
+		/**
+		 * RE_CHARCLASS set
+		 */
+		struct re_charclass cc_data;
+		/**
+		 * RE_CONCAT and RE_UNION child nodes
+		 */
 		struct {
-			int			max_cnt;
-			int			cnt;
-			struct regexp_node	**ptr;
+			/**
+			 * how many space was allocated for pointers
+			 */
+			int max_cnt;
+			/**
+			 * how many childs added
+			 */
+			int cnt;
+			/**
+			 * array of pointers to child nodes
+			 */
+			struct regexp_node **ptr;
 		} childs;
 	} data;
 
+	/**
+	 * pointer to the parent node
+	 */
 	struct regexp_node	*parent;
 };
 

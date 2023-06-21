@@ -12,26 +12,80 @@
 #define SLIST_ARRAY	(0)
 #define SLIST_QUEUE	(1)
 
+/**
+ * structure that is used to describe array or queue object
+ */
 struct slist_description {
-	const char	*name;
-	size_t	element_size;	/* element size */
-	int	(*element_alloc)(void *);	/* func to alloc element */
-	void	(*element_free)(void *);	/* func to dispose element */
+	/**
+	 * name of the slist type
+	 */
+	const char *name;
 
-	int	isorder;	/* 1 -- asc, -1 -- desc, 0 -- none */
-	int	(*element_cmp)(void *, void *);	/* func to compare elements */
-	int	type;	/* queue or array */
+	/**
+	 * size of the one stored element
+	 */
+	size_t element_size;
+
+	/**
+	 * function to allocate one element
+	 */
+	int (*element_alloc)(void *);
+
+	/**
+	 * function to destroy one element
+	 */
+	void (*element_free)(void *);
+
+	/**
+	 * if elements are ordered
+	 * 0 if not; 1 if in ascending order; -1 if in descending order
+	 */
+	int isorder;
+
+	/**
+	 * pointer to function that can compare two elements
+	 */
+	int (*element_cmp)(void *, void *);
+
+	/**
+	 * type of the data structure - array or queue
+	 */
+	int type;
 };
 
+/**
+ * structure that represents array or queue
+ */
 struct slist {
-	struct slist_description	*desc;
+	/**
+	 * pointer to the data structure description
+	 */
+	struct slist_description *desc;
 
-	void	*mem;		/* storage of slist */
-	void	*mem_order;
-	size_t	q_first;	/* number of first element in queue */
+	/**
+	 * pointer to storage of elements
+	 */
+	void *mem;
 
-	size_t	elem_cnt;	/* how much elements is stored now */
-	size_t	elem_mem_size;	/* how much elements can be in *mem */
+	/**
+	 * pointer to array with ordered indexes
+	 */
+	void *mem_order;
+
+	/**
+	 * index of the first lement in the queue
+	 */
+	size_t q_first;
+
+	/**
+	 * number of stored elements
+	 */
+	size_t elem_cnt;
+
+	/**
+	 * total memory capacity
+	 */
+	size_t	elem_mem_size;
 };
 
 /* alloc and free MUST be called only AFTER slist_set_type() call */

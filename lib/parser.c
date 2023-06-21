@@ -18,7 +18,7 @@
 
 #define REGEXP_MAX_DEPTH	(240)
 
-#define RE_CHARCLASS_INITIALIZER {0, {0}}
+#define RE_CHARCLASS_INITIALIZER {.data = {0}, .inverse = false}
 
 enum parser_error {
 	PE_NONE			= 0,

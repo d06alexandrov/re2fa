@@ -15,7 +15,9 @@
 #include <stdint.h>
 #include <stddef.h>
 
+/** flag that shows if the state is final */
 #define DFA_FLAG_FINAL		(0x01)
+/** flag that shows if the state has only transitions to itself */
 #define DFA_FLAG_DEADEND	(0x02)
 
 /**
