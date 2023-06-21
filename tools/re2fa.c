@@ -16,10 +16,7 @@
 
 #include <pthread.h>
 
-#include "lib/dfa.h"
-#include "lib/nfa.h"
-#include "lib/tree_to_nfa.h"
-#include "lib/nfa_to_dfa.h"
+#include <refa.h>
 
 const char *argp_program_version = PACKAGE_VERSION;
 const char *argp_program_bug_address = PACKAGE_BUGREPORT;

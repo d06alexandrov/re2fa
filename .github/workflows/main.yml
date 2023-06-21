@@ -7,8 +7,9 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  build-and-check:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
 
@@ -19,7 +20,9 @@ jobs:
       - name: Install prerequisites
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            brew install automake argp-standalone
+            brew install automake argp-standalone googletest
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt update && sudo apt install -y libgtest-dev
           fi
       - name: Autoreconf
         run: autoreconf -i
@@ -27,3 +30,13 @@ jobs:
         run: ./configure
       - name: Make
         run: make
+      - name: Run tests
+        run: make check
+      - name: Upload test log
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_log_${{ matrix.os }}
+          path: |
+            test/test-suite.log
+            config.log

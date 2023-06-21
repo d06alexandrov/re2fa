@@ -19,6 +19,10 @@ AC_CONFIG_HEADERS([config.h])
 
 AC_PROG_CC
 
+# C++14 is reqired for GoogleTest
+AC_PROG_CXX
+AX_CXX_COMPILE_STDCXX([14], [noext])
+
 AC_CHECK_HEADERS([stdint.h] [stddef.h] [argp.h], [],
   AC_MSG_FAILURE([required headers are missing])
 )
@@ -42,6 +46,7 @@ AS_IF(
   )]
 )
 
+AC_DEFINE([USE_ZLIB], [], [Use zlib library])
 AM_CONDITIONAL([USE_ZLIB], [test "x$with_zlib" = xyes])
 
 AC_SEARCH_LIBS([argp_parse],
@@ -51,6 +56,23 @@ AC_SEARCH_LIBS([argp_parse],
 AC_SUBST([ARGP_LIBS])
 
 AX_PTHREAD([], AC_MSG_FAILURE([test for pthread failed]))
+
+# Check gtest
+AC_LANG_PUSH([C++])
+AC_CHECK_HEADERS([gtest/gtest.h],
+  [have_gtest=yes],
+  [have_gtest=no]
+)
+AC_CHECK_LIB([gtest], [main], [GTEST_LIBS=-lgtest])
+AC_SUBST([GTEST_LIBS])
+AC_LANG_POP([C++])
+
+AS_IF(
+  [test "x$have_gtest" != xyes],
+  [AC_MSG_WARN([GoogleTest is required for tests])],
+  [AC_CONFIG_FILES([test/Makefile])]
+)
+AM_CONDITIONAL([WITH_TESTS], [test "x$have_gtest" = xyes])
 
 AC_TYPE_INT8_T
 AC_TYPE_SIZE_T
@@ -66,4 +88,5 @@ AC_CHECK_FUNCS([memmove memset strrchr])
 AC_CONFIG_FILES([Makefile
                  lib/Makefile
                  tools/Makefile])
+
 AC_OUTPUT
