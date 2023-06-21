@@ -3,6 +3,8 @@ name: Pages by Doxygen
 on:
   push:
     branches: [ master ]
+  pull_request:
+    branches: [ master ]
 
 permissions:
   contents: read
@@ -31,10 +33,12 @@ jobs:
         run: ./configure
       - name: Make
         run: make doxygen-run
-      - name: Upload artifact
+      - name: Upload pages artifact
+        if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v1
         with:
           path: ./doxygen/html
       - name: Deploy to GitHub Pages
+        if: github.event_name == 'push'
         id: deployment
         uses: actions/deploy-pages@v2
