@@ -36,11 +36,13 @@ const enum bs_type backslash_table_re[256] = {
 	['/'] = BS_CHAR, ['#'] = BS_CHAR,
 /* */
 
-	['x']  = BS_HEX,
-	['0']  = BS_OCTET,   ['1'] = BS_OCTET,
-	['d']  = BS_CHARSET, ['s'] = BS_CHARSET, ['S'] = BS_CHARSET,
-	['w']  = BS_CHARSET, ['W'] = BS_CHARSET,
-
+	['x'] = BS_HEX,
+	['0'] = BS_OCTET,   ['1'] = BS_OCTET,
+	['d'] = BS_CHARSET, ['D'] = BS_CHARSET,
+	['h'] = BS_CHARSET, ['H'] = BS_CHARSET,
+	['s'] = BS_CHARSET, ['S'] = BS_CHARSET,
+	['v'] = BS_CHARSET, ['V'] = BS_CHARSET,
+	['w'] = BS_CHARSET, ['W'] = BS_CHARSET,
 };
 
 const unsigned char backslash_replace_table_re[256] = {
@@ -69,52 +71,83 @@ const unsigned char backslash_replace_table_re[256] = {
 	['t'] = 0x09,
 
 	['/'] = '/',  ['#'] = '#'
-
-
 };
 
 void set_charset_bits_re(unsigned char *data, unsigned char cs)
 {
+	unsigned char charset[256/8] = {0};
+
 	switch (cs) {
-	case 'd':	/* digits */
-		data[6] |= 0xFF;
-		data[7] |= 0x03;
+	case 'd': /* any decimal digit [0-9] */
+		charset[6] |= 0xff;
+		charset[7] |= 0x03;
 		break;
-	case 's':	/* whitespace [\t\n\f\r ] */
-		data[1] |= 0x36;
-		data[4] |= 0x01;
+	case 'D': /* any character that is not a decimal digit */
+		memset(charset, 0xff, sizeof(charset));
+		charset[6] ^= 0xff;
+		charset[7] ^= 0x03;
 		break;
-	case 'S':
-		memset(data, 0xFF, 256/8);
-		data[1] ^= 0x36;
-		data[4] ^= 0x01;
+	case 'h': /* any horizontal white space character */
+		charset[1]  |= 0x02; /* 0x09 */
+		charset[4]  |= 0x01; /* 0x20 */
+		charset[20] |= 0x01; /* 0xa0 */
 		break;
-	case 'w':
-		data[6]  |= 0xFF;
-		data[7]  |= 0x03;
-		data[8]  |= 0xFE;
-		data[9]  |= 0xFF;
-		data[10] |= 0xFF;
-		data[11] |= 0x87;
-		data[12] |= 0xFE;
-		data[13] |= 0xFF;
-		data[14] |= 0xFF;
-		data[15] |= 0x07;
+	case 'H': /* any character that is not a horizontal white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1]  ^= 0x02;
+		charset[4]  ^= 0x01;
+		charset[20] ^= 0x01;
 		break;
-	case 'W':
-		memset(data, 0xFF, 256/8);
-		data[6]  ^= 0xFF;
-		data[7]  ^= 0x03;
-		data[8]  ^= 0xFE;
-		data[9]  ^= 0xFF;
-		data[10] ^= 0xFF;
-		data[11] ^= 0x87;
-		data[12] ^= 0xFE;
-		data[13] ^= 0xFF;
-		data[14] ^= 0xFF;
-		data[15] ^= 0x07;
+	case 's': /* any white space character [\t\n\f\r ] */
+		charset[1] |= 0x36;
+		charset[4] |= 0x01;
+		break;
+	case 'S': /* any character that is not a white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1] ^= 0x36;
+		charset[4] ^= 0x01;
+		break;
+	case 'v': /* any vertical white space character */
+		charset[1]  |= 0x3c; /* 0x0a, 0x0b, 0x0c, 0x0d */
+		charset[16] |= 0x20; /* 0x85 */
+		break;
+	case 'V': /* any character that is not a vertical white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1]  ^= 0x3c; /* 0x0a, 0x0b, 0x0c, 0x0d */
+		charset[16] ^= 0x20; /* 0x85 */
+		break;
+	case 'w': /* any "word" character */
+		charset[6]  |= 0xff;
+		charset[7]  |= 0x03;
+		charset[8]  |= 0xfe;
+		charset[9]  |= 0xff;
+		charset[10] |= 0xff;
+		charset[11] |= 0x87;
+		charset[12] |= 0xfe;
+		charset[13] |= 0xff;
+		charset[14] |= 0xff;
+		charset[15] |= 0x07;
+		break;
+	case 'W': /* any "non-word" character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[6]  ^= 0xff;
+		charset[7]  ^= 0x03;
+		charset[8]  ^= 0xfe;
+		charset[9]  ^= 0xff;
+		charset[10] ^= 0xff;
+		charset[11] ^= 0x87;
+		charset[12] ^= 0xfe;
+		charset[13] ^= 0xff;
+		charset[14] ^= 0xff;
+		charset[15] ^= 0x07;
+		break;
+	default:
 		break;
 	};
+
+	for (unsigned int i = 0; i < sizeof(charset); i++) {
+		data[i] |= charset[i];
+	}
 }
 
 /*
@@ -137,9 +170,13 @@ const enum bs_type backslash_table_cc[256] = {
 	['/'] = BS_CHAR, ['&'] = BS_CHAR, ['.'] = BS_CHAR,
 	['\\']= BS_CHAR, ['-'] = BS_CHAR,
 /**/
-	['d'] = BS_CHARSET, ['s'] = BS_CHARSET, ['w'] = BS_CHARSET,
+	['x'] = BS_HEX,
 	['0'] = BS_OCTET, ['1'] = BS_OCTET,
-	['x'] = BS_HEX
+	['d'] = BS_CHARSET, ['D'] = BS_CHARSET,
+	['h'] = BS_CHARSET, ['H'] = BS_CHARSET,
+	['s'] = BS_CHARSET, ['S'] = BS_CHARSET,
+	['v'] = BS_CHARSET, ['V'] = BS_CHARSET,
+	['w'] = BS_CHARSET, ['W'] = BS_CHARSET,
 };
 
 const unsigned char backslash_replace_table_cc[256] = {
@@ -154,25 +191,77 @@ const unsigned char backslash_replace_table_cc[256] = {
 
 void set_charset_bits_cc(unsigned char *data, unsigned char cs)
 {
+	unsigned char charset[256/8] = {0};
+
 	switch (cs) {
-	case 'd':	/* digits */
-		data[6] |= 0xFF;
-		data[7] |= 0x03;
+	case 'd': /* any decimal digit [0-9] */
+		charset[6] |= 0xff;
+		charset[7] |= 0x03;
 		break;
-	case 's':	/* whitespace [\t\n\f\r ] */
-		data[1] |= 0x36;
-		data[4] |= 0x01;
+	case 'D': /* any character that is not a decimal digit */
+		memset(charset, 0xff, sizeof(charset));
+		charset[6] ^= 0xff;
+		charset[7] ^= 0x03;
 		break;
-	case 'w':
-		set_charset_bits_cc(data, 'd');
-		data[8]  |= 0xFE;
-		data[9]  |= 0xFF;
-		data[10] |= 0xFF;
-		data[11] |= 0x87;
-		data[12] |= 0xFE;
-		data[13] |= 0xFF;
-		data[14] |= 0xFF;
-		data[15] |= 0x07;
+	case 'h': /* any horizontal white space character */
+		charset[1]  |= 0x02; /* 0x09 */
+		charset[4]  |= 0x01; /* 0x20 */
+		charset[20] |= 0x01; /* 0xa0 */
+		break;
+	case 'H': /* any character that is not a horizontal white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1]  ^= 0x02;
+		charset[4]  ^= 0x01;
+		charset[20] ^= 0x01;
+		break;
+	case 's': /* any white space character [\t\n\f\r ] */
+		charset[1] |= 0x36;
+		charset[4] |= 0x01;
+		break;
+	case 'S': /* any character that is not a white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1] ^= 0x36;
+		charset[4] ^= 0x01;
+		break;
+	case 'v': /* any vertical white space character */
+		charset[1]  |= 0x3c; /* 0x0a, 0x0b, 0x0c, 0x0d */
+		charset[16] |= 0x20; /* 0x85 */
+		break;
+	case 'V': /* any character that is not a vertical white space character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[1]  ^= 0x3c; /* 0x0a, 0x0b, 0x0c, 0x0d */
+		charset[16] ^= 0x20; /* 0x85 */
+		break;
+	case 'w': /* any "word" character */
+		charset[6]  |= 0xff;
+		charset[7]  |= 0x03;
+		charset[8]  |= 0xfe;
+		charset[9]  |= 0xff;
+		charset[10] |= 0xff;
+		charset[11] |= 0x87;
+		charset[12] |= 0xfe;
+		charset[13] |= 0xff;
+		charset[14] |= 0xff;
+		charset[15] |= 0x07;
+		break;
+	case 'W': /* any "non-word" character */
+		memset(charset, 0xff, sizeof(charset));
+		charset[6]  ^= 0xff;
+		charset[7]  ^= 0x03;
+		charset[8]  ^= 0xfe;
+		charset[9]  ^= 0xff;
+		charset[10] ^= 0xff;
+		charset[11] ^= 0x87;
+		charset[12] ^= 0xfe;
+		charset[13] ^= 0xff;
+		charset[14] ^= 0xff;
+		charset[15] ^= 0x07;
+		break;
+	default:
 		break;
 	};
+
+	for (unsigned int i = 0; i < sizeof(charset); i++) {
+		data[i] |= charset[i];
+	}
 }
