@@ -1,4 +1,9 @@
 SUBDIRS = lib tools
+
+if WITH_TESTS
+SUBDIRS += test
+endif
+
 ACLOCAL_AMFLAGS = -I m4
 
 @DX_RULES@
