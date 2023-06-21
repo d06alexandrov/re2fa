@@ -5,6 +5,7 @@ AM_INIT_AUTOMAKE([-Wall foreign])
 AM_PROG_AR
 LT_INIT
 
+# Doxygen documentation support
 DX_HTML_FEATURE(ON)
 DX_CHM_FEATURE(OFF)
 DX_CHI_FEATURE(OFF)
@@ -13,7 +14,8 @@ DX_RTF_FEATURE(OFF)
 DX_XML_FEATURE(OFF)
 DX_PDF_FEATURE(OFF)
 DX_PS_FEATURE(OFF)
-DX_INIT_DOXYGEN([libREFA], [Doxyfile], [doxygen])
+DX_INIT_DOXYGEN(["$PACKAGE_NAME"], [Doxyfile], [doxygen])
+[test x"$DX_FLAG_doc" != x1] || AC_CONFIG_FILES([Doxyfile])
 
 AC_CONFIG_HEADERS([config.h])
 

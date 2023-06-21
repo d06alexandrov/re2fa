@@ -121,6 +121,7 @@ void nfa_free(struct nfa *nfa);
  * Removing unreachable states and lambda-transitions.
  *
  * @param nfa	pointer to the nfa structure
+ * @return	0 on success
  */
 int nfa_rebuild(struct nfa *nfa);
 
