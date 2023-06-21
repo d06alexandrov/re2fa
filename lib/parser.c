@@ -162,6 +162,7 @@ unsigned char get_valid_hex_value(const unsigned char *ptr)
 }
 
 #define MINMAX_MAX_LEN	((sizeof(((struct first_pass_uchar *)0)->data.mm_val.max) * 8 * 3) / 10 + 1)
+#define MINMAX_MAX_VAL	(65535)
 
 /*
  * {923,123}
@@ -201,7 +202,6 @@ int parse_minmax(int *min, int *max, const unsigned char **pattern)
 
 	if (*ptr == '}') {
 		*max = atoi((const char *)*pattern);
-//		goto out;
 	} else {
 		error = PE_WRONG_SYNTAX;
 		goto out;
@@ -213,6 +213,10 @@ int parse_minmax(int *min, int *max, const unsigned char **pattern)
 	}
 
 out:
+	if (*min > MINMAX_MAX_VAL || *max > MINMAX_MAX_VAL) {
+		error = PE_WRONG_SYNTAX;
+	}
+
 	*pattern = ptr;
 	return error;
 }
@@ -456,11 +460,6 @@ int regexp_first_pass(struct first_pass_result *dst,
 			if (error != PE_NONE)
 				goto error_out;
 			break;
-		case ']':
-		case '}':
-			error = PE_WRONG_SYNTAX;
-			goto error_out;
-			break;
 		default:
 			/* just a char */
 			fpu_tmp.type = FP_CHAR;
@@ -504,8 +503,8 @@ int regexp_first_pass(struct first_pass_result *dst,
 			dst->flags |= FP_FLAG_I;
 			break;
 		default:
-//			error = PE_WRONG_SYNTAX;
-//			goto error_out;
+			error = PE_WRONG_SYNTAX;
+			goto error_out;
 			break;
 		}
 	}
