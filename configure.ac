@@ -59,22 +59,18 @@ AC_SUBST([ARGP_LIBS])
 
 AX_PTHREAD([], AC_MSG_FAILURE([test for pthread failed]))
 
-# Check gtest
-AC_LANG_PUSH([C++])
-AC_CHECK_HEADERS([gtest/gtest.h],
-  [have_gtest=yes],
-  [have_gtest=no]
-)
-AC_CHECK_LIB([gtest], [main], [GTEST_LIBS=-lgtest])
-AC_SUBST([GTEST_LIBS])
-AC_LANG_POP([C++])
+# Using gtest for unit tests
+AX_CXX_ENABLE_LIBRARY(GTEST, [gtest/gtest.h], [gtest],
+  [enable unit tests], [], [])
 
-AS_IF(
-  [test "x$have_gtest" != xyes],
-  [AC_MSG_WARN([GoogleTest is required for tests])],
-  [AC_CONFIG_FILES([test/Makefile])]
-)
-AM_CONDITIONAL([WITH_TESTS], [test "x$have_gtest" = xyes])
+# Using Google benchmark
+AX_CXX_ENABLE_LIBRARY(BENCHMARK, [benchmark/benchmark.h], [benchmark],
+  [enable benchmark tests], [], [])
+
+AM_CONDITIONAL([WITH_TESTS],
+  [test "x$ax_gtest_enable" == xyes || test "x$ax_benchmark_enable" == xyes])
+
+AM_COND_IF(WITH_TESTS, AC_CONFIG_FILES([test/Makefile]))
 
 AC_TYPE_INT8_T
 AC_TYPE_SIZE_T
