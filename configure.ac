@@ -63,14 +63,13 @@ AX_PTHREAD([], AC_MSG_FAILURE([test for pthread failed]))
 AX_CXX_ENABLE_LIBRARY(GTEST, [gtest/gtest.h], [gtest],
   [enable unit tests], [], [])
 
+AM_COND_IF(WITH_GTEST, AC_CONFIG_FILES([test/Makefile]))
+
 # Using Google benchmark
 AX_CXX_ENABLE_LIBRARY(BENCHMARK, [benchmark/benchmark.h], [benchmark],
   [enable benchmark tests], [], [])
 
-AM_CONDITIONAL([WITH_TESTS],
-  [test "x$ax_gtest_enable" == xyes || test "x$ax_benchmark_enable" == xyes])
-
-AM_COND_IF(WITH_TESTS, AC_CONFIG_FILES([test/Makefile]))
+AM_COND_IF(WITH_BENCHMARK, AC_CONFIG_FILES([benchmark/Makefile]))
 
 AC_TYPE_INT8_T
 AC_TYPE_SIZE_T

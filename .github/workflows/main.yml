@@ -39,4 +39,5 @@ jobs:
           name: test_log_${{ matrix.os }}
           path: |
             test/*.log
+            benchmark/*.log
             config.log

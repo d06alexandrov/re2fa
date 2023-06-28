@@ -1,7 +1,11 @@
 SUBDIRS = lib tools
 
-if WITH_TESTS
+if WITH_GTEST
 SUBDIRS += test
+endif
+
+if WITH_BENCHMARK
+SUBDIRS += benchmark
 endif
 
 ACLOCAL_AMFLAGS = -I m4
