@@ -59,18 +59,43 @@ AC_SUBST([ARGP_LIBS])
 
 AX_PTHREAD([], AC_MSG_FAILURE([test for pthread failed]))
 
+# For test purpose
+
+AC_ARG_ENABLE([gcovr],
+  [AS_HELP_STRING([--enable-gcovr], [enable coverage tests @<:@default=no@:>@])],
+  [AS_IF([test "x$enable_gcovr" = xyes],
+    [AC_CHECK_PROG([GCOVR], [gcovr], [yes], [no])
+     AS_IF([test "x$ac_cv_prog_GCOVR" != xyes],
+       [AC_MSG_ERROR([unable to find gcovr tool])])
+  ])],
+  [enable_gcovr=no])
+
+AM_CONDITIONAL([WITH_GCOVR], [test "x$enable_gcovr" = xyes])
+
+AM_COND_IF(WITH_GCOVR,
+  [CPPFLAGS+=" --coverage"
+   LDFLAGS+=" --coverage"
+   ac_save_CPPFLAGS="$CPPFLAGS"
+   AC_MSG_CHECKING([if gcc supports -fprofile-abs-path])
+   CPPFLAGS+=" -fprofile-abs-path"
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[[]])],
+     [ac_c_profile_abs_path=yes], [ac_c_profile_abs_path=no])
+   AC_MSG_RESULT($ac_c_profile_abs_path)
+   CPPFLAGS="$ac_save_CPPFLAGS"
+   AS_IF([test "x$ac_c_profile_abs_path" == xyes], [CPPFLAGS+=" -fprofile-abs-path"])
+   ])
+
 # Using gtest for unit tests
 AX_CXX_ENABLE_LIBRARY(GTEST, [gtest/gtest.h], [gtest],
   [enable unit tests], [], [])
+
+AM_COND_IF(WITH_GTEST, AC_CONFIG_FILES([test/Makefile]))
 
 # Using Google benchmark
 AX_CXX_ENABLE_LIBRARY(BENCHMARK, [benchmark/benchmark.h], [benchmark],
   [enable benchmark tests], [], [])
 
-AM_CONDITIONAL([WITH_TESTS],
-  [test "x$ax_gtest_enable" == xyes || test "x$ax_benchmark_enable" == xyes])
-
-AM_COND_IF(WITH_TESTS, AC_CONFIG_FILES([test/Makefile]))
+AM_COND_IF(WITH_BENCHMARK, AC_CONFIG_FILES([benchmark/Makefile]))
 
 AC_TYPE_INT8_T
 AC_TYPE_SIZE_T

@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build-and-check:
+  test-coverage:
     strategy:
       fail-fast: false
       matrix:
@@ -20,9 +20,46 @@ jobs:
       - name: Install prerequisites
         run: |
           if [ "$RUNNER_OS" == "macOS" ]; then
-            brew install automake argp-standalone googletest google-benchmark
+            brew install automake argp-standalone googletest
           elif [ "$RUNNER_OS" == "Linux" ]; then
-            sudo apt update && sudo apt install -y libgtest-dev libbenchmark-dev
+            sudo apt update && sudo apt install -y libgtest-dev
+          fi
+          pip3 install gcovr
+      - name: Autoreconf
+        run: autoreconf -i
+      - name: Configure
+        run: ./configure --enable-gcovr
+      - name: Make
+        run: make
+      - name: Run tests
+        run: make check -C test
+      - name: Upload test log
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test_log_${{ github.job }}_${{ matrix.os }}
+          path: |
+            test/*.log
+            test/coverage/
+            config.log
+
+  benchmark:
+    needs: test-coverage
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install prerequisites
+        run: |
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            brew install automake argp-standalone google-benchmark
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt update && sudo apt install -y libbenchmark-dev
           fi
       - name: Autoreconf
         run: autoreconf -i
@@ -30,13 +67,13 @@ jobs:
         run: ./configure
       - name: Make
         run: make
-      - name: Run tests
-        run: make check
+      - name: Run benchmark tests
+        run: make check -C benchmark
       - name: Upload test log
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: test_log_${{ matrix.os }}
+          name: test_log_${{ github.job }}_${{ matrix.os }}
           path: |
-            test/*.log
+            benchmark/*.log
             config.log
