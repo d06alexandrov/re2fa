@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build-and-check:
+  tests:
     strategy:
       fail-fast: false
       matrix:
@@ -24,10 +24,11 @@ jobs:
           elif [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt update && sudo apt install -y libgtest-dev libbenchmark-dev
           fi
+          pip3 install gcovr
       - name: Autoreconf
         run: autoreconf -i
       - name: Configure
-        run: ./configure
+        run: ./configure --enable-gcovr
       - name: Make
         run: make
       - name: Run tests
@@ -38,6 +39,7 @@ jobs:
         with:
           name: test_log_${{ matrix.os }}
           path: |
-            test/*.log
             benchmark/*.log
+            test/*.log
+            test/coverage/
             config.log

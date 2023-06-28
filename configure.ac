@@ -59,6 +59,23 @@ AC_SUBST([ARGP_LIBS])
 
 AX_PTHREAD([], AC_MSG_FAILURE([test for pthread failed]))
 
+# For test purpose
+
+AC_ARG_ENABLE([gcovr],
+  [AS_HELP_STRING([--enable-gcovr], [enable coverage tests @<:@default=no@:>@])],
+  [AS_IF([test "x$enable_gcovr" = xyes],
+    [AC_CHECK_PROG([GCOVR], [gcovr], [yes], [no])
+     AS_IF([test "x$ac_cv_prog_GCOVR" != xyes],
+       [AC_MSG_ERROR([unable to find gcovr tool])])
+  ])],
+  [enable_gcovr=no])
+
+AM_CONDITIONAL([WITH_GCOVR], [test "x$enable_gcovr" = xyes])
+
+AM_COND_IF(WITH_GCOVR,
+  [CPPFLAGS+="--coverage -fprofile-abs-path"
+   LDFLAGS+="--coverage"])
+
 # Using gtest for unit tests
 AX_CXX_ENABLE_LIBRARY(GTEST, [gtest/gtest.h], [gtest],
   [enable unit tests], [], [])
