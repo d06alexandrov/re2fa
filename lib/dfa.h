@@ -131,7 +131,19 @@ void dfa_free(struct dfa *dfa);
  * @param src	pointer to the dfa structure that will be joined to the dst
  * @return	0 on success
  */
-int dfa_join(struct dfa *dst, struct dfa *src);
+int dfa_join(struct dfa *dst, const struct dfa *src);
+
+/**
+ * Join two DFA.
+ *
+ * Joins two dfa - src1 and src2 (src1|src2) and saves the result to dst.
+ *
+ * @param dst	pointer to the existing and initialized empty DFA for the result
+ * @param src1	pointer to the first dfa structure that will be joined
+ * @param src2	pointer to the second dfa structure that will be joined
+ * @return	0 on success
+ */
+int dfa_join2(struct dfa *dst, const struct dfa *src1, const struct dfa *src2);
 
 /**
  * Append one DFA to another.
@@ -189,7 +201,7 @@ int dfa_add_trans(struct dfa *dfa, size_t from, unsigned char mark, size_t to);
  * @param mark	label of transition
  * @return	index of the destination's state
  */
-size_t dfa_get_trans(struct dfa *dfa, size_t from, unsigned char mark);
+size_t dfa_get_trans(const struct dfa *dfa, size_t from, unsigned char mark);
 
 /**
  * Check if DFA's state is an accepting (final) state.
@@ -200,7 +212,7 @@ size_t dfa_get_trans(struct dfa *dfa, size_t from, unsigned char mark);
  * @param state	index of the DFA's state
  * @return	0 if the state with provided index is final
  */
-int dfa_state_is_final(struct dfa *dfa, size_t state);
+int dfa_state_is_final(const struct dfa *dfa, size_t state);
 
 /**
  * Mark or unmark the DFA's state as a final state.
@@ -224,7 +236,7 @@ int dfa_state_set_final(struct dfa *dfa, size_t state, int final);
  * @param state	index of the DFA's state
  * @return	0 if the state with provided index is a 'deadend'
  */
-int dfa_state_is_deadend(struct dfa *dfa, size_t state);
+int dfa_state_is_deadend(const struct dfa *dfa, size_t state);
 
 /**
  * Add new state to the DFA.
@@ -259,7 +271,7 @@ int dfa_add_n_state(struct dfa *dfa, size_t cnt, size_t *index);
  * @param filename	path where dfa structure must be saved
  * @return		0 on success
  */
-int dfa_save_to_file(struct dfa *dfa, char *filename);
+int dfa_save_to_file(const struct dfa *dfa, char *filename);
 
 /**
  * Load the dfa from the file.
