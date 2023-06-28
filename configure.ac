@@ -73,8 +73,17 @@ AC_ARG_ENABLE([gcovr],
 AM_CONDITIONAL([WITH_GCOVR], [test "x$enable_gcovr" = xyes])
 
 AM_COND_IF(WITH_GCOVR,
-  [CPPFLAGS+="--coverage -fprofile-abs-path"
-   LDFLAGS+="--coverage"])
+  [CPPFLAGS+=" --coverage"
+   LDFLAGS+=" --coverage"
+   ac_save_CPPFLAGS="$CPPFLAGS"
+   AC_MSG_CHECKING([if gcc supports -fprofile-abs-path])
+   CPPFLAGS+=" -fprofile-abs-path"
+   AC_COMPILE_IFELSE([AC_LANG_PROGRAM([],[[]])],
+     [ac_c_profile_abs_path=yes], [ac_c_profile_abs_path=no])
+   AC_MSG_RESULT($ac_c_profile_abs_path)
+   CPPFLAGS="$ac_save_CPPFLAGS"
+   AS_IF([test "x$ac_c_profile_abs_path" == xyes], [CPPFLAGS+=" -fprofile-abs-path"])
+   ])
 
 # Using gtest for unit tests
 AX_CXX_ENABLE_LIBRARY(GTEST, [gtest/gtest.h], [gtest],
