@@ -36,7 +36,7 @@
 
 static int dfa_state_set_deadend(struct dfa *dfa, size_t state, int deadend);
 static int dfa_state_calc_deadend(struct dfa *dfa, size_t state);
-static void dfa_print(struct dfa *dfa);
+static void dfa_print(const struct dfa *dfa);
 
 static int max_to_bps(size_t max)
 {
@@ -110,7 +110,7 @@ int dfa_alloc2(struct dfa *dfa, size_t max_cnt)
 }
 
 static int dfa_add_trans_native(struct dfa *dfa, size_t state_size, int bps, size_t from, unsigned char mark, size_t to);
-static size_t dfa_get_trans_native(struct dfa *dfa, size_t state_size, int bps, size_t from, unsigned char mark);
+static size_t dfa_get_trans_native(const struct dfa *dfa, size_t state_size, int bps, size_t from, unsigned char mark);
 
 int dfa_change_max_size(struct dfa *dfa, size_t max_cnt)
 {
@@ -155,27 +155,43 @@ void dfa_free(struct dfa *dfa)
 	}
 }
 
-int dfa_join(struct dfa *dst_g, struct dfa *src_g)
+int dfa_join(struct dfa *dst, const struct dfa *src)
 {
-/* TODO! */
-	struct dfa *dst = dst_g, *src = src_g;
+	struct dfa dfa_joined;
+	int result;
 
-	if (dst_g->state_cnt < src_g->state_cnt) {
-		dst = src_g;
-		src = dst_g;
+	dfa_alloc(&dfa_joined);
+
+	result = dfa_join2(&dfa_joined, dst, src);
+
+	if (result == 0) {
+		dfa_free(dst);
+
+		*dst = dfa_joined;
 	}
 
-	struct dfa dfa_out;
+	return result;
+}
+
+int dfa_join2(struct dfa *dst, const struct dfa *src1, const struct dfa *src2)
+{
+/* TODO: refactor */
+	const struct dfa *dfa1 = src1, *dfa2 = src2;
+
+	if (src1->state_cnt < src2->state_cnt) {
+		dfa1 = src2;
+		dfa2 = src1;
+	}
+
 	size_t *pairs = malloc(sizeof(size_t) * 2);
-	size_t **pairs_2 = malloc(sizeof(size_t *) * dst->state_cnt);
-	size_t *pairs_cnt = malloc(sizeof(size_t) * dst->state_cnt);
+	size_t **pairs_2 = malloc(sizeof(size_t *) * dfa1->state_cnt);
+	size_t *pairs_cnt = malloc(sizeof(size_t) * dfa1->state_cnt);
 	size_t cnt = 0;
 
 	memset(pairs, 0x00, sizeof(size_t *) * 2);
-	memset(pairs_2, 0x00, sizeof(size_t *) * dst->state_cnt);
-	for (size_t i = 0; i < dst->state_cnt; i++)
+	memset(pairs_2, 0x00, sizeof(size_t *) * dfa1->state_cnt);
+	for (size_t i = 0; i < dfa1->state_cnt; i++)
 		pairs_cnt[i] = 0;
-
 
 	size_t *tmp_pairs = malloc(sizeof(size_t) * 3 * 256);
 	size_t tmp_cnt = 0;
@@ -183,30 +199,29 @@ int dfa_join(struct dfa *dst_g, struct dfa *src_g)
 	size_t cur[2];
 	size_t next[2];
 
-	pairs[0] = dst->first_index;
-	pairs[1] = src->first_index;
-	pairs_2[dst->first_index] = realloc(pairs_2[dst->first_index],
-					  ++pairs_cnt[dst->first_index] * 2 * sizeof(size_t));
-	pairs_2[dst->first_index][(pairs_cnt[dst->first_index] - 1) * 2] = src->first_index;
-	pairs_2[dst->first_index][(pairs_cnt[dst->first_index] - 1) * 2 + 1] = cnt;
+	pairs[0] = dfa1->first_index;
+	pairs[1] = dfa2->first_index;
+	pairs_2[dfa1->first_index] = realloc(pairs_2[dfa1->first_index],
+					  ++pairs_cnt[dfa1->first_index] * 2 * sizeof(size_t));
+	pairs_2[dfa1->first_index][(pairs_cnt[dfa1->first_index] - 1) * 2] = dfa2->first_index;
+	pairs_2[dfa1->first_index][(pairs_cnt[dfa1->first_index] - 1) * 2 + 1] = cnt;
 	cnt++;
 
-	dfa_alloc(&dfa_out);
-	dfa_add_state(&dfa_out, NULL);
-	dfa_state_set_final(&dfa_out, 0, dfa_state_is_final(dst, dst->first_index) ||
-				  dfa_state_is_final(src, src->first_index));
+	dfa_add_state(dst, NULL);
+	dfa_state_set_final(dst, 0, dfa_state_is_final(dfa1, dfa1->first_index) ||
+				  dfa_state_is_final(dfa2, dfa2->first_index));
 	for (size_t cur_index = 0; cur_index < cnt; cur_index++) {
 		tmp_cnt = 0;
 		cur[0] = pairs[cur_index * 2];
 		cur[1] = pairs[cur_index * 2 + 1];
 
-		if ((dfa_state_is_deadend(dst, cur[0]) && dfa_state_is_final(dst, cur[0])) ||
-		    (dfa_state_is_deadend(src, cur[1]) && dfa_state_is_final(src, cur[1])) ||
-		    (dfa_state_is_deadend(dst, cur[0]) && dfa_state_is_deadend(src, cur[1]))) {
+		if ((dfa_state_is_deadend(dfa1, cur[0]) && dfa_state_is_final(dfa1, cur[0])) ||
+		    (dfa_state_is_deadend(dfa2, cur[1]) && dfa_state_is_final(dfa2, cur[1])) ||
+		    (dfa_state_is_deadend(dfa1, cur[0]) && dfa_state_is_deadend(dfa2, cur[1]))) {
 			for (int i = 0; i < 256; i++)
-				dfa_add_trans(&dfa_out, cur_index, i, cur_index);
-			dfa_state_calc_deadend(&dfa_out, cur_index);
-if (!dfa_state_is_final(&dfa_out, cur_index))
+				dfa_add_trans(dst, cur_index, i, cur_index);
+			dfa_state_calc_deadend(dst, cur_index);
+if (!dfa_state_is_final(dst, cur_index))
 	printf("%s:%d ERROR\n", __FILE__, __LINE__);
 			continue;
 		}
@@ -215,10 +230,10 @@ if (!dfa_state_is_final(&dfa_out, cur_index))
 			int found = 0;
 			size_t next_index;
 
-			next[0] = dfa_get_trans(dst, cur[0], i);
-//dst->nodes[cur[0]].trans[i];
-			next[1] = dfa_get_trans(src, cur[1], i);
-//src->nodes[cur[1]].trans[i];
+			next[0] = dfa_get_trans(dfa1, cur[0], i);
+//dfa1->nodes[cur[0]].trans[i];
+			next[1] = dfa_get_trans(dfa2, cur[1], i);
+//dfa2->nodes[cur[1]].trans[i];
 
 			for (int j = 0; j < tmp_cnt; j++) {
 				if (tmp_pairs[j * 3] == next[0] &&
@@ -246,11 +261,11 @@ if (!dfa_state_is_final(&dfa_out, cur_index))
 					pairs_2[next[0]] = realloc(pairs_2[next[0]], sizeof(size_t) * 2 * ++pairs_cnt[next[0]]);
 					pairs_2[next[0]][(pairs_cnt[next[0]] - 1) * 2] = next[1];
 					pairs_2[next[0]][(pairs_cnt[next[0]] - 1) * 2 + 1] = next_index;
-					if (dfa_add_state(&dfa_out, NULL) != 0)
+					if (dfa_add_state(dst, NULL) != 0)
 						printf("%d\n", __LINE__);
 
-					dfa_state_set_final(&dfa_out, next_index, dfa_state_is_final(dst, next[0]) ||
-							   dfa_state_is_final(src, next[1]));
+					dfa_state_set_final(dst, next_index, dfa_state_is_final(dfa1, next[0]) ||
+							   dfa_state_is_final(dfa2, next[1]));
 				}
 
 				tmp_pairs[tmp_cnt * 3] = next[0];
@@ -259,11 +274,11 @@ if (!dfa_state_is_final(&dfa_out, cur_index))
 				tmp_cnt++;
 			}
 
-			dfa_add_trans(&dfa_out, cur_index, i, next_index);
+			dfa_add_trans(dst, cur_index, i, next_index);
 		}
-		dfa_state_calc_deadend(&dfa_out, cur_index);
+		dfa_state_calc_deadend(dst, cur_index);
 	}
-	for (size_t i = 0; i < dst->state_cnt; i++)
+	for (size_t i = 0; i < dfa1->state_cnt; i++)
 		free(pairs_2[i]);
 
 	free(pairs_2);
@@ -274,19 +289,15 @@ if (!dfa_state_is_final(&dfa_out, cur_index))
 
 /* copy comments to result dfa */
 
-	dfa_out.comment_size = dst_g->comment_size + src_g->comment_size;
-	dfa_out.comment = malloc(dfa_out.comment_size);
-	memcpy(dfa_out.comment, dst_g->comment, dst_g->comment_size);
-	memcpy(dfa_out.comment + dst_g->comment_size, src_g->comment,
-						src_g->comment_size);
-	if (dst_g->comment_size > 0 && src_g->comment_size > 0)
-		dfa_out.comment[dst_g->comment_size - 1] = '\n';
+	dst->comment_size = src1->comment_size + src1->comment_size;
+	dst->comment = malloc(dst->comment_size);
+	memcpy(dst->comment, src1->comment, src1->comment_size);
+	memcpy(dst->comment + src1->comment_size, src2->comment,
+						src2->comment_size);
+	if (src1->comment_size > 0 && src2->comment_size > 0)
+		dst->comment[src1->comment_size - 1] = '\n';
 
 /*******************************/
-
-	dfa_free(dst_g);
-
-	*dst_g = dfa_out;
 
 	return 0;
 }
@@ -713,7 +724,7 @@ int dfa_add_trans(struct dfa *dfa, size_t from, unsigned char mark, size_t to)
 	return out;
 }
 
-size_t dfa_get_trans_native(struct dfa *dfa, size_t state_size, int bps, size_t from, unsigned char mark)
+size_t dfa_get_trans_native(const struct dfa *dfa, size_t state_size, int bps, size_t from, unsigned char mark)
 {
 	size_t out = 0;
 	void *state;
@@ -739,7 +750,7 @@ size_t dfa_get_trans_native(struct dfa *dfa, size_t state_size, int bps, size_t 
 	return out;
 }
 
-size_t dfa_get_trans(struct dfa *dfa, size_t from, unsigned char mark)
+size_t dfa_get_trans(const struct dfa *dfa, size_t from, unsigned char mark)
 {
 	size_t out = dfa_get_trans_native(dfa, dfa->state_size, dfa->bps,
 					  from, mark);
@@ -747,7 +758,7 @@ size_t dfa_get_trans(struct dfa *dfa, size_t from, unsigned char mark)
 	return out;
 }
 
-int dfa_state_is_final(struct dfa *dfa, size_t state)
+int dfa_state_is_final(const struct dfa *dfa, size_t state)
 {
 	if (dfa->flags[state] & DFA_FLAG_FINAL)
 		return 1;
@@ -768,7 +779,7 @@ int dfa_state_set_final(struct dfa *dfa, size_t state, int last)
 	return 0;
 }
 
-int dfa_state_is_deadend(struct dfa *dfa, size_t state)
+int dfa_state_is_deadend(const struct dfa *dfa, size_t state)
 {
 	if (state > dfa->state_cnt)
 		return -1;
@@ -841,7 +852,7 @@ int dfa_add_n_state(struct dfa *dfa, size_t cnt, size_t *index)
 	return 0;
 }
 
-int dfa_save_to_file(struct dfa *src, char *filename)
+int dfa_save_to_file(const struct dfa *src, char *filename)
 {
 	FILE *dst = fopen(filename, "w");
 
@@ -1075,7 +1086,7 @@ out_err:
 }
 
 
-static void dfa_print_char(unsigned char a)
+static void dfa_print_char(const unsigned char a)
 {
 	if (isprint(a)) {
 		if (a == '"' || a == '-' || a == '\\')
@@ -1086,7 +1097,7 @@ static void dfa_print_char(unsigned char a)
 	}
 }
 
-void dfa_print(struct dfa *src)
+void dfa_print(const struct dfa *src)
 {
 	printf("#dfa states: %zu, first: %zu \n", src->state_cnt, src->first_index);
 
