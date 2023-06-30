@@ -4,8 +4,6 @@ extern "C" {
 #include <refa.h>
 }
 
-#include <iostream>
-
 #define PARSE_CORRECT_REGEXP(re)			\
 	do {						\
 		struct regexp_tree *re_tree;		\
@@ -29,16 +27,24 @@ TEST(re_treeTests, test_correct_simple) {
 	PARSE_CORRECT_REGEXP("/abc/");
 }
 
+TEST(re_treeTests, test_correct_simple_mod) {
+	PARSE_CORRECT_REGEXP("/abc/smi");
+}
+
 TEST(re_treeTests, test_correct_simple_begin) {
 	PARSE_CORRECT_REGEXP("/^abc/");
+}
+
+TEST(re_treeTests, test_correct_simple_begin_mod) {
+	PARSE_CORRECT_REGEXP("/^abc/m");
 }
 
 TEST(re_treeTests, test_correct_simple_end) {
 	PARSE_CORRECT_REGEXP("/abc$/");
 }
 
-TEST(re_treeTests, test_correct_simple_mod) {
-	PARSE_CORRECT_REGEXP("/abc/smi");
+TEST(re_treeTests, test_correct_simple_end_mod) {
+	PARSE_CORRECT_REGEXP("/abc$/m");
 }
 
 TEST(re_treeTests, test_correct_char_types_d) {
@@ -239,6 +245,18 @@ TEST(re_treeTests, test_correct_charclass_range3) {
 	PARSE_CORRECT_REGEXP("/a[a-]c/");
 }
 
+TEST(re_treeTests, test_correct_charclass_inversion1) {
+	PARSE_CORRECT_REGEXP("/a[^b]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_inversion2) {
+	PARSE_CORRECT_REGEXP("/a[^]b]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_not_inversion) {
+	PARSE_CORRECT_REGEXP("/a[b^]c/");
+}
+
 /* Incorrect regular expressions */
 
 TEST(re_treeTests, test_incorrect_end) {
@@ -255,6 +273,14 @@ TEST(re_treeTests, test_incorrect_multiple_ends) {
 
 TEST(re_treeTests, test_incorrect_ext) {
 	PARSE_INCORRECT_REGEXP("/abc/smFi");
+}
+
+TEST(re_treeTests, test_incorrect_middle_begin) {
+	PARSE_INCORRECT_REGEXP("/a^bc/");
+}
+
+TEST(re_treeTests, test_incorrect_middle_end) {
+	PARSE_INCORRECT_REGEXP("/ab$c/");
 }
 
 TEST(re_treeTests, test_incorrect_subpattern_left) {
@@ -279,6 +305,14 @@ TEST(re_treeTests, test_incorrect_minmax3) {
 
 TEST(re_treeTests, test_incorrect_minmax4) {
 	PARSE_INCORRECT_REGEXP("/ab{2,123456}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax5) {
+	PARSE_INCORRECT_REGEXP("/^{2}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax6) {
+	PARSE_INCORRECT_REGEXP("/{2}/");
 }
 
 TEST(re_treeTests, test_incorrect_hex1) {
