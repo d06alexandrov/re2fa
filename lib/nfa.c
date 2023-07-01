@@ -303,9 +303,7 @@ int nfa_remove_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to
 
 	struct nfa_node *node = &(nfa->nodes[from]);
 
-	nfa_node_remove_trans(node, mark, to);
-
-	return 0;
+	return nfa_node_remove_trans(node, mark, to);
 }
 
 int nfa_remove_trans_all(struct nfa *nfa, size_t from)
@@ -649,7 +647,7 @@ int nfa_node_remove_trans(struct nfa_node *dst, unsigned char mark, size_t to)
 			return 0;
 		}
 
-	return 0;
+	return -1;
 }
 
 int nfa_node_remove_trans_all(struct nfa_node *node)

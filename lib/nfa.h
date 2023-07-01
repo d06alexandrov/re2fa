@@ -233,7 +233,7 @@ int nfa_remove_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to
 int nfa_remove_trans_all(struct nfa *nfa, size_t from);
 
 /**
- * Copy transitions from one NFA's state to another.
+ * Copy non-lambda transitions from one NFA's state to another.
  *
  * Copies all outgoing transitions from one state to another.
  *

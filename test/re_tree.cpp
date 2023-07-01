@@ -4,8 +4,6 @@ extern "C" {
 #include <refa.h>
 }
 
-#include <iostream>
-
 #define PARSE_CORRECT_REGEXP(re)			\
 	do {						\
 		struct regexp_tree *re_tree;		\
@@ -33,6 +31,22 @@ TEST(re_treeTests, test_correct_simple_mod) {
 	PARSE_CORRECT_REGEXP("/abc/smi");
 }
 
+TEST(re_treeTests, test_correct_simple_begin) {
+	PARSE_CORRECT_REGEXP("/^abc/");
+}
+
+TEST(re_treeTests, test_correct_simple_begin_mod) {
+	PARSE_CORRECT_REGEXP("/^abc/m");
+}
+
+TEST(re_treeTests, test_correct_simple_end) {
+	PARSE_CORRECT_REGEXP("/abc$/");
+}
+
+TEST(re_treeTests, test_correct_simple_end_mod) {
+	PARSE_CORRECT_REGEXP("/abc$/m");
+}
+
 TEST(re_treeTests, test_correct_char_types_d) {
 	PARSE_CORRECT_REGEXP("/a\\db\\Dc/");
 }
@@ -51,6 +65,34 @@ TEST(re_treeTests, test_correct_char_types_v) {
 
 TEST(re_treeTests, test_correct_char_types_w) {
 	PARSE_CORRECT_REGEXP("/a\\wb\\Wc/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_d) {
+	PARSE_CORRECT_REGEXP("/a[\\d]b[\\D]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_h) {
+	PARSE_CORRECT_REGEXP("/a[\\h]b[\\H]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_s) {
+	PARSE_CORRECT_REGEXP("/a[\\s]b[\\S]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_v) {
+	PARSE_CORRECT_REGEXP("/a[\\v]b[\\V]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_w) {
+	PARSE_CORRECT_REGEXP("/a[\\w]b[\\W]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_w_mod) {
+	PARSE_CORRECT_REGEXP("/a[\\w]c/i");
+}
+
+TEST(re_treeTests, test_correct_char_types_w_mod) {
+	PARSE_CORRECT_REGEXP("/a\\wc/i");
 }
 
 #ifdef USE_POSIX_CHAR_CLASSES
@@ -159,6 +201,62 @@ TEST(re_treeTests, test_correct_minmax_question) {
 	PARSE_CORRECT_REGEXP("/ab?c/");
 }
 
+TEST(re_treeTests, test_correct_any) {
+	PARSE_CORRECT_REGEXP("/a.c/");
+}
+
+TEST(re_treeTests, test_correct_hex) {
+	PARSE_CORRECT_REGEXP("/a\\x01\\xab\\xCd\\xeFc/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_hex) {
+	PARSE_CORRECT_REGEXP("/a[\\x01\\xab\\xCd\\xeF]c/");
+}
+
+TEST(re_treeTests, test_correct_octet) {
+	PARSE_CORRECT_REGEXP("/a\\012\\034\\156\\113c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_with_octet) {
+	PARSE_CORRECT_REGEXP("/a[\\012\\034\\156\\113]c/");
+}
+
+TEST(re_treeTests, test_correct_backslash_regular1) {
+	PARSE_CORRECT_REGEXP("/a\\\\c/");
+}
+
+TEST(re_treeTests, test_correct_backslash_regular2) {
+	PARSE_CORRECT_REGEXP("/a\\*c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_backslash_regular) {
+	PARSE_CORRECT_REGEXP("/a[\\\\]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_range1) {
+	PARSE_CORRECT_REGEXP("/a[a-z]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_range2) {
+	PARSE_CORRECT_REGEXP("/a[-z]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_range3) {
+	PARSE_CORRECT_REGEXP("/a[a-]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_inversion1) {
+	PARSE_CORRECT_REGEXP("/a[^b]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_inversion2) {
+	PARSE_CORRECT_REGEXP("/a[^]b]c/");
+}
+
+TEST(re_treeTests, test_correct_charclass_not_inversion) {
+	PARSE_CORRECT_REGEXP("/a[b^]c/");
+}
+
 /* Incorrect regular expressions */
 
 TEST(re_treeTests, test_incorrect_end) {
@@ -169,8 +267,20 @@ TEST(re_treeTests, test_incorrect_begin) {
 	PARSE_INCORRECT_REGEXP("abc/");
 }
 
+TEST(re_treeTests, test_incorrect_multiple_ends) {
+	PARSE_INCORRECT_REGEXP("/a/bc/");
+}
+
 TEST(re_treeTests, test_incorrect_ext) {
 	PARSE_INCORRECT_REGEXP("/abc/smFi");
+}
+
+TEST(re_treeTests, test_incorrect_middle_begin) {
+	PARSE_INCORRECT_REGEXP("/a^bc/");
+}
+
+TEST(re_treeTests, test_incorrect_middle_end) {
+	PARSE_INCORRECT_REGEXP("/ab$c/");
 }
 
 TEST(re_treeTests, test_incorrect_subpattern_left) {
@@ -187,6 +297,54 @@ TEST(re_treeTests, test_incorrect_minmax1) {
 
 TEST(re_treeTests, test_incorrect_minmax2) {
 	PARSE_INCORRECT_REGEXP("/ab{65536}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax3) {
+	PARSE_INCORRECT_REGEXP("/ab{123456}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax4) {
+	PARSE_INCORRECT_REGEXP("/ab{2,123456}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax5) {
+	PARSE_INCORRECT_REGEXP("/^{2}c/");
+}
+
+TEST(re_treeTests, test_incorrect_minmax6) {
+	PARSE_INCORRECT_REGEXP("/{2}/");
+}
+
+TEST(re_treeTests, test_incorrect_hex1) {
+	PARSE_INCORRECT_REGEXP("/a\\xT1c/");
+}
+
+TEST(re_treeTests, test_incorrect_hex2) {
+	PARSE_INCORRECT_REGEXP("/a\\x.1c/");
+}
+
+TEST(re_treeTests, test_incorrect_charclass_with_hex1) {
+	PARSE_INCORRECT_REGEXP("/a[\\xT1]c/");
+}
+
+TEST(re_treeTests, test_incorrect_charclass_with_hex2) {
+	PARSE_INCORRECT_REGEXP("/a[\\x0]c/");
+}
+
+TEST(re_treeTests, test_incorrect_octet1) {
+	PARSE_INCORRECT_REGEXP("/a\\455c/");
+}
+
+TEST(re_treeTests, test_incorrect_octet2) {
+	PARSE_INCORRECT_REGEXP("/a\\0a1c/");
+}
+
+TEST(re_treeTests, test_incorrect_charclass_with_octet1) {
+	PARSE_INCORRECT_REGEXP("/a[\\455]c/");
+}
+
+TEST(re_treeTests, test_incorrect_charclass_with_octet2) {
+	PARSE_INCORRECT_REGEXP("/a[\\12]c/");
 }
 
 int main(int argc, char **argv)

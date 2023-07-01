@@ -161,8 +161,8 @@ unsigned char get_valid_hex_value(const unsigned char *ptr)
 	return (hex_table_part[c1] * 16 + hex_table_part[c2]);
 }
 
-#define MINMAX_MAX_LEN	((sizeof(((struct first_pass_uchar *)0)->data.mm_val.max) * 8 * 3) / 10 + 1)
 #define MINMAX_MAX_VAL	(65535)
+#define MINMAX_MAX_LEN	(5)
 
 /*
  * {923,123}
@@ -197,7 +197,7 @@ int parse_minmax(int *min, int *max, const unsigned char **pattern)
 		goto out;
 	}
 
-
+	cnt = 0;
 	while (isdigit(*(++ptr)) && (cnt++) < MINMAX_MAX_LEN);
 
 	if (*ptr == '}') {
