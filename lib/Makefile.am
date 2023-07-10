@@ -16,8 +16,6 @@ librefa_la_SOURCES = \
 	parser_inner.c \
 	parser_inner.h \
 	refa.h \
-	simple_list.c \
-	simple_list.h \
 	tree_to_nfa.c \
 	tree_to_nfa.h
 

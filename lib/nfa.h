@@ -198,7 +198,7 @@ int nfa_add_node_n(struct nfa *nfa, size_t cnt, size_t *index);
  *
  * @param nfa	pointer to the nfa structure
  * @param state	index of the NFA's state
- * @return	0 if the state with provided index is final
+ * @return	1 if the state with provided index is final
  */
 int nfa_state_is_final(struct nfa *nfa, size_t state);
 
