@@ -20,7 +20,7 @@ TEST(nfaTests, free_null) {
 	nfa_free(NULL);
 }
 
-TEST(nfaTests, add_state_fragile) {
+TEST(nfaTests, add_state) {
 	struct nfa nfa;
 	int result;
 
@@ -32,13 +32,13 @@ TEST(nfaTests, add_state_fragile) {
 	result = nfa_add_node(&nfa, NULL);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add state";
-	EXPECT_EQ(nfa.node_cnt, 2) <<
+	EXPECT_EQ(nfa_state_count(&nfa), 2) <<
 	"Added 2 states but result NFA has only " << nfa.node_cnt;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, add_multiple_states_fragile) {
+TEST(nfaTests, add_multiple_states) {
 	struct nfa nfa;
 	int result;
 
@@ -47,16 +47,17 @@ TEST(nfaTests, add_multiple_states_fragile) {
 	result = nfa_add_node_n(&nfa, 2, NULL);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add 2 states";
-	EXPECT_EQ(nfa.node_cnt, 2) <<
+	EXPECT_EQ(nfa_state_count(&nfa), 2) <<
 	"Added 2 states but result NFA has only " << nfa.node_cnt;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, add_transition_fragile) {
+TEST(nfaTests, add_transition) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -64,19 +65,20 @@ TEST(nfaTests, add_transition_fragile) {
 	result = nfa_add_trans(&nfa, index, 'a', index + 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add transition between states";
-	ASSERT_EQ(nfa.nodes[index].trans_cnt['a'], 1) <<
+	ASSERT_EQ(nfa_get_trans(&nfa, index, 'a', &trans_list), 1) <<
 	"State " << index << " does not have transitions by 'a'";
-	EXPECT_EQ(nfa.nodes[index].trans['a'][0], index + 1) <<
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have transition by 'a' to " << index + 1;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, add_same_transition_fragile) {
+TEST(nfaTests, add_same_transition) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -85,10 +87,9 @@ TEST(nfaTests, add_same_transition_fragile) {
 	result = nfa_add_trans(&nfa, index, 'a', index + 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add transition between states";
-	ASSERT_EQ(nfa.nodes[index].trans_cnt['a'], 1) <<
-	"State " << index <<
-	" must not have 1 transition by 'a' instead of " << nfa.nodes[index].trans_cnt['a'];
-	EXPECT_EQ(nfa.nodes[index].trans['a'][0], index + 1) <<
+	ASSERT_EQ(nfa_get_trans(&nfa, index, 'a', &trans_list), 1) <<
+	"State " << index << " must have 1 transition by 'a'";
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have transition by 'a' to " << index + 1;
 
@@ -107,17 +108,18 @@ TEST(nfaTests, remove_transition_fragile) {
 	result = nfa_remove_trans(&nfa, index, 'a', index + 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to remove transition between states";
-	EXPECT_EQ(nfa.nodes[index].trans_cnt['a'], 0) <<
+	EXPECT_EQ(nfa_get_trans(&nfa, index, 'a', NULL), 0) <<
 	"State " << index << " still have transitions by 'a'";
 
 	nfa_free(&nfa);
 }
 
 
-TEST(nfaTests, remove_nonexistent_transition_fragile) {
+TEST(nfaTests, remove_nonexistent_transition) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -126,19 +128,22 @@ TEST(nfaTests, remove_nonexistent_transition_fragile) {
 	result = nfa_remove_trans(&nfa, index, 'b', index + 1);
 	ASSERT_NE(result, 0) <<
 	"Succed to remove nonexistent transition between states";
-	ASSERT_EQ(nfa.nodes[index].trans_cnt['a'], 1) <<
-	"State " << index << " does not have transitions by 'a'";
-	EXPECT_EQ(nfa.nodes[index].trans['a'][0], index + 1) <<
+	ASSERT_EQ(nfa_get_trans(&nfa, index, 'b', NULL), 0) <<
+	"State " << index << " must not have transitions by 'b'";
+	ASSERT_EQ(nfa_get_trans(&nfa, index, 'a', &trans_list), 1) <<
+	"State " << index << " must have 1 transition by 'a'";
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have transition by 'a' to " << index + 1;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, remove_transition_nonexistent_state_fragile) {
+TEST(nfaTests, remove_transition_nonexistent_state) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -147,19 +152,20 @@ TEST(nfaTests, remove_transition_nonexistent_state_fragile) {
 	result = nfa_remove_trans(&nfa, index + 2, 'a', index);
 	ASSERT_NE(result, 0) <<
 	"Succed to remove transition from nonexistent state";
-	ASSERT_EQ(nfa.nodes[index].trans_cnt['a'], 1) <<
-	"State " << index << " does not have transitions by 'a'";
-	EXPECT_EQ(nfa.nodes[index].trans['a'][0], index + 1) <<
+	ASSERT_EQ(nfa_get_trans(&nfa, index, 'a', &trans_list), 1) <<
+	"State " << index << " must have 1 transition by 'a'";
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have transition by 'a' to " << index + 1;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, add_lambda_transition_fragile) {
+TEST(nfaTests, add_lambda_transition) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -167,9 +173,9 @@ TEST(nfaTests, add_lambda_transition_fragile) {
 	result = nfa_add_lambda_trans(&nfa, index, index + 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add lambda-transition between states";
-	ASSERT_EQ(nfa.nodes[index].lambda_cnt, 1) <<
+	ASSERT_EQ(nfa_get_lambda_trans(&nfa, index, &trans_list), 1) <<
 	"State " << index << " does not have lambda-transitions";
-	EXPECT_EQ(nfa.nodes[index].lambda_trans[0], index + 1) <<
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have lambda-transition to " << index + 1;
 
@@ -180,6 +186,7 @@ TEST(nfaTests, add_same_lambda_transition_fragile) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -188,17 +195,16 @@ TEST(nfaTests, add_same_lambda_transition_fragile) {
 	result = nfa_add_lambda_trans(&nfa, index, index + 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to add lambda-transition between states";
-	ASSERT_EQ(nfa.nodes[index].lambda_cnt, 1) <<
-	"State " << index <<
-	" must have 1 lambda-transition instead of " << nfa.nodes[index].lambda_cnt;
-	EXPECT_EQ(nfa.nodes[index].lambda_trans[0], index + 1) <<
+	ASSERT_EQ(nfa_get_lambda_trans(&nfa, index, &trans_list), 1) <<
+	"State " << index << " must have 1 lambda-transitions";
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index <<
 	" does not have lambda-transition to " << index + 1;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, remove_all_transitions_fragile) {
+TEST(nfaTests, remove_all_transitions) {
 	struct nfa nfa;
 	int result;
 	size_t index;
@@ -212,20 +218,21 @@ TEST(nfaTests, remove_all_transitions_fragile) {
 	result = nfa_remove_trans_all(&nfa, index);
 	ASSERT_EQ(result, 0) <<
 	"Failed to remove all transitions from state " << index;
-	EXPECT_EQ(nfa.nodes[index].trans_cnt['a'], 0) <<
+	EXPECT_EQ(nfa_get_trans(&nfa, index, 'a', NULL), 0) <<
 	"State " << index << " still has transitions by 'a'";
-	EXPECT_EQ(nfa.nodes[index].lambda_cnt, 0) <<
+	EXPECT_EQ(nfa_get_lambda_trans(&nfa, index, NULL), 0) <<
 	"State " << index << " still has lambda-transitions";
-	EXPECT_EQ(nfa.nodes[index + 1].trans_cnt['b'], 1) <<
+	EXPECT_EQ(nfa_get_trans(&nfa, index + 1, 'b', NULL), 1) <<
 	"State " << index + 1 << " does not have transitions by 'b'";
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, copy_transitions_fragile) {
+TEST(nfaTests, copy_transitions) {
 	struct nfa nfa;
 	int result;
 	size_t index;
+	size_t *trans_list;
 
 	nfa_alloc(&nfa);
 	nfa_add_node_n(&nfa, 2, &index);
@@ -236,23 +243,23 @@ TEST(nfaTests, copy_transitions_fragile) {
 	result = nfa_copy_trans(&nfa, index + 1, index);
 	ASSERT_EQ(result, 0) <<
 	"Failed to copy transitions from state " << index;
-	ASSERT_EQ(nfa.nodes[index + 1].trans_cnt['a'], 1) <<
+	ASSERT_EQ(nfa_get_trans(&nfa, index + 1, 'a', &trans_list), 1) <<
 	"State " << index << " does not have 1 transition by 'a'";
-	EXPECT_EQ(nfa.nodes[index + 1].trans['a'][0], index + 1) <<
+	EXPECT_EQ(trans_list[0], index + 1) <<
 	"State " << index + 1 <<
 	" does not have transition by 'a' to " << index;
-	ASSERT_EQ(nfa.nodes[index + 1].lambda_cnt, 0) <<
-	"State " << index + 1 << " must not have 1 lambda-transition";
-	ASSERT_EQ(nfa.nodes[index + 1].trans_cnt['b'], 1) <<
+	EXPECT_EQ(nfa_get_lambda_trans(&nfa, index + 1, NULL), 0) <<
+	"State " << index + 1 << " must not have lambda-transitions";
+	ASSERT_EQ(nfa_get_trans(&nfa, index + 1, 'b', &trans_list), 1) <<
 	"State " << index + 1 << " does not have 1 transition by 'b'";
-	EXPECT_EQ(nfa.nodes[index + 1].trans['b'][0], index) <<
+	EXPECT_EQ(trans_list[0], index) <<
 	"State " << index + 1 <<
 	" does not have transition by 'b' to " << index;
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, set_final_fragile) {
+TEST(nfaTests, set_final) {
 	struct nfa nfa;
 	int result;
 	size_t index;
@@ -264,15 +271,15 @@ TEST(nfaTests, set_final_fragile) {
 	result = nfa_state_set_final(&nfa, index + 1, 1);
 	ASSERT_EQ(result, 0) <<
 	"Failed to mark state " << index + 1 << " as final";
-	EXPECT_FALSE(nfa.nodes[index].isfinal) <<
+	EXPECT_FALSE(nfa_state_is_final(&nfa, index)) <<
 	"State " << index << " must not be a final state";
-	EXPECT_TRUE(nfa.nodes[index + 1].isfinal) <<
+	EXPECT_TRUE(nfa_state_is_final(&nfa, index + 1)) <<
 	"State " << index + 1 << "must be a final state";
 
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, reset_final_fragile) {
+TEST(nfaTests, reset_final) {
 	struct nfa nfa;
 	int result;
 	size_t index;
@@ -285,9 +292,9 @@ TEST(nfaTests, reset_final_fragile) {
 	result = nfa_state_set_final(&nfa, index + 1, 0);
 	ASSERT_EQ(result, 0) <<
 	"Failed to mark state " << index + 1 << " as final";
-	EXPECT_FALSE(nfa.nodes[index].isfinal) <<
+	EXPECT_FALSE(nfa_state_is_final(&nfa, index)) <<
 	"State " << index << " must not be a final state";
-	EXPECT_FALSE(nfa.nodes[index + 1].isfinal) <<
+	EXPECT_FALSE(nfa_state_is_final(&nfa, index + 1)) <<
 	"State " << index + 1 << "must be a final state";
 
 	nfa_free(&nfa);
@@ -314,7 +321,7 @@ TEST(nfaTests, check_final) {
 	nfa_free(&nfa);
 }
 
-TEST(nfaTests, rebuild1_fragile) {
+TEST(nfaTests, rebuild1) {
 	struct nfa nfa;
 	int result;
 	size_t index;
@@ -326,13 +333,13 @@ TEST(nfaTests, rebuild1_fragile) {
 	result = nfa_rebuild(&nfa);
 	ASSERT_EQ(result, 0) <<
 	"Failed to rebuild NFA";
-	EXPECT_EQ(nfa.node_cnt, 1) <<
-	"After rebuild NFA must have only 1 state instead of " << nfa.node_cnt;
+	EXPECT_EQ(nfa_state_count(&nfa), 1) <<
+	"After rebuild NFA must have only 1 state instead of " << nfa_state_count(&nfa);
 
 	nfa_free(&nfa);
 }
 /*
-TEST(nfaTests, rebuild2_fragile) {
+TEST(nfaTests, rebuild2) {
 	struct nfa nfa;
 	int result;
 	size_t index;
@@ -346,7 +353,7 @@ TEST(nfaTests, rebuild2_fragile) {
 
 	ASSERT_EQ(result, 0) <<
 	"Failed to rebuild NFA";
-	ASSERT_EQ(nfa.node_cnt, 1) <<
+	ASSERT_EQ(nfa_state_count(&nfa), 1) <<
 	"After rebuild NFA must have only 1 state instead of " << nfa.node_cnt;
 	ASSERT_TRUE(nfa_state_is_final(&nfa, index)) <<
 	"After rebuild state " << index << " must become a final state";
@@ -374,9 +381,10 @@ TEST(nfaTests, join_fragile) {
 
 	nfa_remove_lambda(&nfa1);
 
-	EXPECT_EQ(nfa1.nodes[nfa1.first_index].trans_cnt['a'], 1) <<
+	index = nfa_get_initial_state(&nfa1);
+	EXPECT_EQ(nfa_get_trans(&nfa1, index, 'a', NULL), 1) <<
 	"State " << index << " does not have transitions by 'a'";
-	EXPECT_EQ(nfa1.nodes[nfa1.first_index].trans_cnt['b'], 1) <<
+	EXPECT_EQ(nfa_get_trans(&nfa1, index, 'b', NULL), 1) <<
 	"State " << index << " does not have transitions by 'b'";
 
 	nfa_free(&nfa1);

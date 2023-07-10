@@ -116,9 +116,40 @@ int nfa_alloc(struct nfa *nfa);
 void nfa_free(struct nfa *nfa);
 
 /**
+ * Number of NFA's states.
+ *
+ * Returns total number of NFA's states.
+ *
+ * @param nfa	pointer to the nfa structure
+ * @return	total number of states
+ */
+size_t nfa_state_count(struct nfa *nfa);
+
+/**
+ * Get initial NFA's state.
+ *
+ * Returns index of the initial state.
+ *
+ * @param nfa	pointer to the nfa structure
+ * @return	index of the initial state
+ */
+size_t nfa_get_initial_state(struct nfa *nfa);
+
+/**
+ * Set initial NFA's state.
+ *
+ * Sets index of the initial state.
+ *
+ * @param nfa	pointer to the nfa structure
+ * @param index	new initial state's index
+ * @return	0 on success
+ */
+int nfa_set_initial_state(struct nfa *nfa, size_t index);
+
+/**
  * Rebuild of NFA structure.
  *
- * Removing unreachable states and lambda-transitions.
+ * Removes unreachable states and lambda-transitions.
  *
  * @param nfa	pointer to the nfa structure
  * @return	0 on success
@@ -167,7 +198,7 @@ int nfa_add_node_n(struct nfa *nfa, size_t cnt, size_t *index);
  *
  * @param nfa	pointer to the nfa structure
  * @param state	index of the NFA's state
- * @return	0 if the state with provided index is final
+ * @return	1 if the state with provided index is final
  */
 int nfa_state_is_final(struct nfa *nfa, size_t state);
 
@@ -186,7 +217,7 @@ int nfa_state_set_final(struct nfa *nfa, size_t state, int final);
 /**
  * Add lambda-transition to NFA.
  *
- * Add lambda-transition between two states.
+ * Adds lambda-transition between two states.
  *
  * @param nfa	pointer to the nfa structure where transition will be added
  * @param from	left state's index
@@ -194,6 +225,19 @@ int nfa_state_set_final(struct nfa *nfa, size_t state, int final);
  * @return	0 on success
  */
 int nfa_add_lambda_trans(struct nfa *nfa, size_t from, size_t to);
+
+/**
+ * Lambda-transitions from a state.
+ *
+ * Returns total number of lambda-transitions and list of pointed states
+ * from a given state. List of states must not be used after NFA changes.
+ *
+ * @param nfa	pointer to the nfa structure
+ * @param from	left state's index
+ * @param trans	if not NULL then it will point to the list of states
+ * @return	0 on success
+ */
+size_t nfa_get_lambda_trans(struct nfa *nfa, size_t from, size_t **trans);
 
 /**
  * Add transition to NFA.
@@ -209,6 +253,22 @@ int nfa_add_lambda_trans(struct nfa *nfa, size_t from, size_t to);
 int nfa_add_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to);
 
 /**
+ * Transitions from a state.
+ *
+ * Returns total number of transitions and list of pointed states
+ * from a given state by a given mark. List of states must not be used
+ * after NFA changes.
+ *
+ * @param nfa	pointer to the nfa structure
+ * @param from	left state's index
+ * @param mark	label of transition
+ * @param trans	if not NULL then it will point to the list of states
+ * @return	0 on success
+ */
+size_t nfa_get_trans(struct nfa *nfa, size_t from, unsigned char mark,
+		     size_t **trans);
+
+/**
  * Remove transition from NFA.
  *
  * Removes transition between two states.
@@ -219,7 +279,8 @@ int nfa_add_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to);
  * @param to	right state's index
  * @return	0 on success
  */
-int nfa_remove_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to);
+int nfa_remove_trans(struct nfa *nfa, size_t from, unsigned char mark,
+		     size_t to);
 
 /**
  * Remove all transitions from specific NFA's state.

@@ -16,9 +16,9 @@
 #include "nfa.h"
 
 /**
- * Converting NFA to DFA.
+ * Converting lambda-free NFA to DFA.
  *
- * Converts NFA to initialized empty DFA.
+ * Converts NFA without lambda transitions to initialized empty DFA.
  *
  * @param dfa	pointer to the existing and initialized empty DFA
  * @param nfa	pointer to the source NFA without lambda-transitions

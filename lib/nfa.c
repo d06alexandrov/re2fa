@@ -61,6 +61,27 @@ void nfa_free(struct nfa *nfa)
 	}
 }
 
+size_t nfa_state_count(struct nfa *nfa)
+{
+	return nfa->node_cnt;
+}
+
+size_t nfa_get_initial_state(struct nfa *nfa)
+{
+	return nfa->first_index;
+}
+
+int nfa_set_initial_state(struct nfa *nfa, size_t index)
+{
+	if (index >= nfa_state_count(nfa)) {
+		return -1;
+	}
+
+	nfa->first_index = index;
+
+	return 0;
+}
+
 int nfa_rebuild(struct nfa *nfa)
 {
 	nfa_remove_lambda(nfa);
@@ -284,6 +305,19 @@ int nfa_add_lambda_trans(struct nfa *nfa, size_t from, size_t to)
 	return 0;
 }
 
+size_t nfa_get_lambda_trans(struct nfa *nfa, size_t from, size_t **trans)
+{
+	if (from >= nfa_state_count(nfa)) {
+		return 0;
+	}
+
+	if (trans != NULL) {
+		*trans = nfa->nodes[from].lambda_trans;
+	}
+
+	return nfa->nodes[from].lambda_cnt;
+}
+
 int nfa_add_trans(struct nfa *dst, size_t from, unsigned char mark, size_t to)
 {
 	struct nfa_node *node = &(dst->nodes[from]);
@@ -294,6 +328,20 @@ int nfa_add_trans(struct nfa *dst, size_t from, unsigned char mark, size_t to)
 	nfa_node_add_trans(node, mark, to);
 
 	return 0;
+}
+
+size_t nfa_get_trans(struct nfa *nfa, size_t from, unsigned char mark,
+		     size_t **trans)
+{
+	if (from >= nfa_state_count(nfa)) {
+		return 0;
+	}
+
+	if (trans != NULL) {
+		*trans = nfa->nodes[from].trans[mark];
+	}
+
+	return nfa->nodes[from].trans_cnt[mark];
 }
 
 int nfa_remove_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to)
