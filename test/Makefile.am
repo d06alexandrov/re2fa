@@ -35,7 +35,8 @@ test-coverage: check-am
 	mkdir -p $(builddir)/coverage
 	gcovr -r $(top_srcdir) $(top_builddir)/lib \
 		--print-summary \
-		--html-details=$(builddir)/coverage/index.html
+		--html-details=$(builddir)/coverage/index.html \
+		--xml=$(builddir)/coverage/codecov.xml
 
 check: test-coverage
 endif

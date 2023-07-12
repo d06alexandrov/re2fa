@@ -7,7 +7,33 @@ on:
     branches: [ master ]
 
 jobs:
-  test-coverage:
+  codecov:
+    strategy:
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install prerequisites
+        run: |
+          sudo apt update && sudo apt install -y libgtest-dev
+          pip3 install gcovr
+      - name: Autoreconf
+        run: autoreconf -i
+      - name: Configure
+        run: ./configure --enable-gcovr
+      - name: Make
+        run: make
+      - name: Run tests
+        run: make check -C test
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./test/coverage/codecov.xml
+
+  test:
     strategy:
       fail-fast: false
       matrix:
@@ -24,11 +50,10 @@ jobs:
           elif [ "$RUNNER_OS" == "Linux" ]; then
             sudo apt update && sudo apt install -y libgtest-dev
           fi
-          pip3 install gcovr
       - name: Autoreconf
         run: autoreconf -i
       - name: Configure
-        run: ./configure --enable-gcovr
+        run: ./configure
       - name: Make
         run: make
       - name: Run tests
@@ -40,11 +65,10 @@ jobs:
           name: test_log_${{ github.job }}_${{ matrix.os }}
           path: |
             test/*.log
-            test/coverage/
             config.log
 
   benchmark:
-    needs: test-coverage
+    needs: test
     strategy:
       fail-fast: false
       matrix:
