@@ -1,5 +1,7 @@
 # Regular Expressions to Finite-state Automaton (RE2FA) #
 
+[![codecov](https://codecov.io/github/d06alexandrov/re2fa/branch/master/graph/badge.svg?token=7T0YULZK6L)](https://codecov.io/github/d06alexandrov/re2fa)
+
 ## Overview ##
 
 The RE2FA is a small library that can generate Deterministic Finite-state
