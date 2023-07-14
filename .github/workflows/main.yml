@@ -7,6 +7,35 @@ on:
     branches: [ master ]
 
 jobs:
+  sonarcloud:
+    strategy:
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: sonarcloud
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+      - name: Autoreconf
+        run: autoreconf -i
+      - name: Configure
+        run: ./configure
+      - name: Run build-wrapper
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} make
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define project.settings=.github/sonar-project.properties --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
   codecov:
     strategy:
       fail-fast: false
