@@ -24,6 +24,6 @@
  * @param nfa	pointer to the source NFA without lambda-transitions
  * @return	0 on success
  */
-int convert_nfa_to_dfa(struct dfa *dfa, struct nfa *nfa);
+int convert_nfa_to_dfa(struct dfa *dfa, const struct nfa *nfa);
 
 #endif /** REFA_NFA_TO_DFA_H @} */

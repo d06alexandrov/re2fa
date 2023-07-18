@@ -61,12 +61,12 @@ void nfa_free(struct nfa *nfa)
 	}
 }
 
-size_t nfa_state_count(struct nfa *nfa)
+size_t nfa_state_count(const struct nfa *nfa)
 {
 	return nfa->node_cnt;
 }
 
-size_t nfa_get_initial_state(struct nfa *nfa)
+size_t nfa_get_initial_state(const struct nfa *nfa)
 {
 	return nfa->first_index;
 }
@@ -205,7 +205,7 @@ int nfa_rebuild(struct nfa *nfa)
 	return 0;
 }
 
-int nfa_join(struct nfa *dst, struct nfa *src)
+int nfa_join(struct nfa *dst, const struct nfa *src)
 {
 	size_t	offset;
 
@@ -272,7 +272,7 @@ int nfa_add_node_n(struct nfa *nfa, size_t cnt, size_t *index)
 	return 0;
 }
 
-int nfa_state_is_final(struct nfa *nfa, size_t state)
+int nfa_state_is_final(const struct nfa *nfa, size_t state)
 {
 	if (nfa->nodes[state].isfinal)
 		return 1;
@@ -305,7 +305,7 @@ int nfa_add_lambda_trans(struct nfa *nfa, size_t from, size_t to)
 	return 0;
 }
 
-size_t nfa_get_lambda_trans(struct nfa *nfa, size_t from, size_t **trans)
+size_t nfa_get_lambda_trans(const struct nfa *nfa, size_t from, size_t **trans)
 {
 	if (from >= nfa_state_count(nfa)) {
 		return 0;
@@ -330,7 +330,7 @@ int nfa_add_trans(struct nfa *dst, size_t from, unsigned char mark, size_t to)
 	return 0;
 }
 
-size_t nfa_get_trans(struct nfa *nfa, size_t from, unsigned char mark,
+size_t nfa_get_trans(const struct nfa *nfa, size_t from, unsigned char mark,
 		     size_t **trans)
 {
 	if (from >= nfa_state_count(nfa)) {
