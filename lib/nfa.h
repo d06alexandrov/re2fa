@@ -123,7 +123,7 @@ void nfa_free(struct nfa *nfa);
  * @param nfa	pointer to the nfa structure
  * @return	total number of states
  */
-size_t nfa_state_count(struct nfa *nfa);
+size_t nfa_state_count(const struct nfa *nfa);
 
 /**
  * Get initial NFA's state.
@@ -133,7 +133,7 @@ size_t nfa_state_count(struct nfa *nfa);
  * @param nfa	pointer to the nfa structure
  * @return	index of the initial state
  */
-size_t nfa_get_initial_state(struct nfa *nfa);
+size_t nfa_get_initial_state(const struct nfa *nfa);
 
 /**
  * Set initial NFA's state.
@@ -165,7 +165,7 @@ int nfa_rebuild(struct nfa *nfa);
  * @param src	pointer to the nfa structure that will be joined to the dst
  * @return	0 on success
  */
-int nfa_join(struct nfa *dst, struct nfa *src);
+int nfa_join(struct nfa *dst, const struct nfa *src);
 
 /**
  * Add new node (state) to the NFA.
@@ -200,7 +200,7 @@ int nfa_add_node_n(struct nfa *nfa, size_t cnt, size_t *index);
  * @param state	index of the NFA's state
  * @return	1 if the state with provided index is final
  */
-int nfa_state_is_final(struct nfa *nfa, size_t state);
+int nfa_state_is_final(const struct nfa *nfa, size_t state);
 
 /**
  * Mark or unmark the NFA's state as a final state.
@@ -237,7 +237,7 @@ int nfa_add_lambda_trans(struct nfa *nfa, size_t from, size_t to);
  * @param trans	if not NULL then it will point to the list of states
  * @return	0 on success
  */
-size_t nfa_get_lambda_trans(struct nfa *nfa, size_t from, size_t **trans);
+size_t nfa_get_lambda_trans(const struct nfa *nfa, size_t from, size_t **trans);
 
 /**
  * Add transition to NFA.
@@ -265,7 +265,7 @@ int nfa_add_trans(struct nfa *nfa, size_t from, unsigned char mark, size_t to);
  * @param trans	if not NULL then it will point to the list of states
  * @return	0 on success
  */
-size_t nfa_get_trans(struct nfa *nfa, size_t from, unsigned char mark,
+size_t nfa_get_trans(const struct nfa *nfa, size_t from, unsigned char mark,
 		     size_t **trans);
 
 /**

@@ -46,7 +46,7 @@ struct ptr_queue {
 	/**
 	 * @brief Size of one node of a queue.
 	 */
-	long pagesize;
+	unsigned long pagesize;
 
 	/**
 	 * @brief Number of elements in one node of a queue.
@@ -62,35 +62,30 @@ struct ptr_queue {
 	 * @brief Node with last element.
 	 */
 	struct ptr_queue_node *last_node;
+
+	/**
+	 * @brief Reserved node.
+	 */
+	struct ptr_queue_node *reserved;
 };
 
 /**
  * @brief Initialize queue of pointers.
  *
- * Initialize queue and add at least one buffer pointer's buffer.
+ * Initialize queue structure.
  *
  * @param q	pointer to the queue
  * @return	0 on success
  */
-static int ptr_queue_init(struct ptr_queue *q)
+static void ptr_queue_init(struct ptr_queue *q)
 {
-	q->pagesize = sysconf(_SC_PAGESIZE);
+	q->pagesize = (unsigned long)sysconf(_SC_PAGESIZE);
 	q->node_elements = (q->pagesize - sizeof(struct ptr_queue_node))
 			   / sizeof(void *);
 
-	q->first_node = aligned_alloc(q->pagesize, q->pagesize);
-	q->last_node = q->first_node;
-
-	if (q->first_node == NULL) {
-		return 1;
-	}
-
-	q->first_node->next_node = NULL;
-	q->first_node->first = q->first_node->mem;
-	q->first_node->last = q->first_node->first;
-	q->first_node->end = q->first_node->first + q->node_elements;
-
-	return 0;
+	q->first_node = NULL;
+	q->last_node = NULL;
+	q->reserved = NULL;
 }
 
 /**
@@ -102,7 +97,8 @@ static int ptr_queue_init(struct ptr_queue *q)
  */
 static void ptr_queue_deinit(struct ptr_queue *q)
 {
-	struct ptr_queue_node *next_node, *cur_node;
+	struct ptr_queue_node *next_node;
+	struct ptr_queue_node *cur_node;
 
 	next_node = q->first_node;
 
@@ -112,6 +108,8 @@ static void ptr_queue_deinit(struct ptr_queue *q)
 
 		free(cur_node);
 	}
+
+	free(q->reserved);
 }
 
 /**
@@ -124,30 +122,42 @@ static void ptr_queue_deinit(struct ptr_queue *q)
 static int ptr_queue_push(struct ptr_queue *q, void *ptr)
 {
 	struct ptr_queue_node *node;
+	struct ptr_queue_node *new_node;
 
 	node = q->last_node;
 
-	if (node->last == node->end) {
-		if (node->next_node == NULL) {
-			node->next_node = aligned_alloc(q->pagesize, q->pagesize);
-			if (node->next_node == NULL) {
-				return 1;
-			}
+	if (node == NULL || node->last == node->end) {
+		if (q->reserved != NULL) {
+			new_node = q->reserved;
+			q->reserved = NULL;
+		} else {
+			new_node = aligned_alloc(q->pagesize, q->pagesize);
 		}
 
-		node = node->next_node;
-		node->next_node = NULL;
-		node->first = node->mem;
-		node->last = node->first;
-		node->end = node->first + q->node_elements;
+		if (new_node != NULL) {
+			new_node->next_node = NULL;
+			new_node->first = new_node->mem;
+			new_node->last = new_node->first;
+			new_node->end = new_node->first + q->node_elements;
 
-		q->last_node = node;
+			if (node == NULL) {
+				q->first_node = new_node;
+			} else {
+				node->next_node = new_node;
+			}
+
+			q->last_node = new_node;
+		}
+
+		node = new_node;
 	}
 
-	*node->last = ptr;
-	node->last++;
+	if (node != NULL) {
+		*node->last = ptr;
+		node->last++;
+	}
 
-	return 0;
+	return node == NULL;
 }
 
 /**
@@ -164,23 +174,21 @@ static void *ptr_queue_pop(struct ptr_queue *q)
 
 	node = q->first_node;
 
-	if (node->first != node->last) {
+	if (node != NULL && node->first != node->last) {
 		res = *node->first;
 		node->first++;
 
 		if (node->first == node->end) {
-			if (node == q->last_node) {
-				node->first = node->mem;
-				node->last = node->first;
-			} else {
-				q->first_node = node->next_node;
+ 			q->first_node = node->next_node;
 
-				if (q->last_node->next_node == NULL) {
-					q->last_node->next_node = node;
-					node->next_node = NULL;
-				} else {
-					free(node);
-				}
+			if (node == q->last_node) {
+				q->last_node = NULL;
+			}
+
+			if (q->reserved == NULL) {
+				q->reserved = node;
+			} else {
+				free(node);
 			}
 		}
 	}
@@ -228,10 +236,13 @@ static struct nfa_dfa_pair *nfa_dfa_pair_alloc()
 	struct nfa_dfa_pair *pair;
 
 	pair = malloc(NFA_DFA_PAIR_STEP * sizeof(size_t));
-	pair->nfa_count_reserved = NFA_DFA_PAIR_STEP
-				   - sizeof(struct nfa_dfa_pair) / sizeof(size_t);
-	pair->nfa_count = 0;
-	pair->dfa_state = 0;
+
+	if (pair != NULL) {
+		pair->nfa_count_reserved = NFA_DFA_PAIR_STEP
+					   - sizeof(struct nfa_dfa_pair) / sizeof(size_t);
+		pair->nfa_count = 0;
+		pair->dfa_state = 0;
+	}
 
 	return pair;
 }
@@ -260,7 +271,10 @@ static void nfa_dfa_pair_free(struct nfa_dfa_pair *pair)
  */
 static int nfa_dfa_pair_add(struct nfa_dfa_pair **pair, size_t element)
 {
-	size_t new_pos, left, right, middle;
+	size_t new_pos;
+	size_t left;
+	size_t right;
+	size_t middle;
 	size_t new_mem_size;
 	struct nfa_dfa_pair *mem;
 
@@ -329,6 +343,61 @@ found:
 }
 
 /**
+ * @brief Calculate next set of NFA states by it's previous set and
+ * transition mark.
+ *
+ * @param nfa		original NFA
+ * @param current	nfa_dfa_pair where the current set is stored
+ * @param mark		transition mark
+ * @param final		is the next set have final states
+ * @return		next NFA states' set or NULL on failure
+ */
+static struct nfa_dfa_pair *nfa_dfa_pair_next_state(
+				const struct nfa *nfa,
+				const struct nfa_dfa_pair *current,
+				unsigned char mark,
+				bool *final)
+{
+	struct nfa_dfa_pair *next = NULL;
+	bool error = false;
+	*final = false;
+
+	if ((next = nfa_dfa_pair_alloc()) == NULL) {
+		error = true;
+	}
+
+	for (size_t state = 0; state < current->nfa_count && !error; state++) {
+		size_t nfa_index;
+		size_t trans_cnt;
+		size_t *nfa_trans;
+
+		nfa_index = current->nfa_states[state];
+
+		trans_cnt = nfa_get_trans(nfa, nfa_index,
+					  mark, &nfa_trans);
+
+		for (size_t trans = 0; trans < trans_cnt && !error; trans++) {
+			size_t nfa_index_next;
+
+			nfa_index_next = nfa_trans[trans];
+
+			if (!*final) {
+				*final = nfa_state_is_final(nfa, nfa_index_next);
+			}
+
+			error = nfa_dfa_pair_add(&next, nfa_index_next) != 0;
+		}
+	}
+
+	if (error && next != NULL) {
+		nfa_dfa_pair_free(next);
+		next = NULL;
+	}
+
+	return next;
+}
+
+/**
  * @brief Compare two nfa dfa pairs.
  *
  * Compare lexicographically NFA states sets.
@@ -341,23 +410,39 @@ found:
  */
 static int compare_nfa_dfa_pair(struct nfa_dfa_pair *p1, struct nfa_dfa_pair *p2)
 {
-	size_t i;
+	int cmp = 0;
+	size_t min_state_count;
+	bool compared = false;
 
-	for (i = 0; i < p1->nfa_count && i < p2->nfa_count; i++) {
-		if (p1->nfa_states[i] < p2->nfa_states[i]) {
-			return -1;
-		} else if (p1->nfa_states[i] > p2->nfa_states[i]) {
-			return 1;
+	if (p1->nfa_count < p2->nfa_count) {
+		min_state_count = p1->nfa_count;
+	} else {
+		min_state_count = p2->nfa_count;
+	}
+
+	for (size_t i = 0; i < min_state_count && !compared; i++) {
+		if (p1->nfa_states[i] != p2->nfa_states[i]) {
+			if (p1->nfa_states[i] < p2->nfa_states[i]) {
+				cmp = -1;
+			} else {
+				cmp = 1;
+			}
+
+			compared = true;
 		}
 	}
 
-	if (p1->nfa_count < p2->nfa_count) {
-		return -1;
-	} else if (p1->nfa_count > p2->nfa_count) {
-		return 1;
+	if (!compared) {
+		if (p1->nfa_count < p2->nfa_count) {
+			cmp = -1;
+		} else if (p1->nfa_count > p2->nfa_count) {
+			cmp = 1;
+		} else {
+			cmp = 0;
+		}
 	}
 
-	return 0;
+	return cmp;
 }
 
 /**
@@ -409,14 +494,12 @@ struct rb_tree {
  * @brief Initialize red-black tree.
  *
  * @param tree	pointer to the tree structure
- * @return	0 on success
  */
-static int rb_tree_init(struct rb_tree *tree)
+static void rb_tree_init(struct rb_tree *tree)
 {
 	tree->nil = (struct rb_node){.parent = NULL, .left = NULL,
 				     .right = NULL, .pair = NULL, true};
 	tree->root = &tree->nil;
-	return 0;
 }
 
 /**
@@ -426,7 +509,8 @@ static int rb_tree_init(struct rb_tree *tree)
  */
 static void rb_tree_deinit(struct rb_tree *tree)
 {
-	struct rb_node *iter, *parent;
+	struct rb_node *iter;
+	struct rb_node *parent;
 
 	if (tree->root == &tree->nil) {
 		return;
@@ -549,9 +633,10 @@ static void rb_tree_right_rotate(struct rb_tree *tree, struct rb_node *node)
  * @param tree	pointer to the tree structure
  * @param node	node to be fixed
  */
-static void rb_tree_fix(struct rb_tree *tree, struct rb_node *node)
+static void rb_tree_fix(struct rb_tree *tree, struct rb_node *node_to_fix)
 {
 	struct rb_node *node_uncle;
+	struct rb_node *node = node_to_fix;
 
 	while (node->parent->black == false) {
 		if (node->parent == node->parent->parent->left) {
@@ -607,7 +692,9 @@ static void rb_tree_fix(struct rb_tree *tree, struct rb_node *node)
  */
 static int rb_tree_try_add(struct rb_tree *tree, struct nfa_dfa_pair *pair)
 {
-	struct rb_node *iter, *parent, *new_node;
+	struct rb_node *iter;
+	struct rb_node *parent;
+	struct rb_node *new_node;
 	int cmp_res;
 
 	iter = tree->root;
@@ -653,130 +740,90 @@ static int rb_tree_try_add(struct rb_tree *tree, struct nfa_dfa_pair *pair)
 	return 0;
 }
 
-int convert_nfa_to_dfa(struct dfa *dst, struct nfa *src)
+int convert_nfa_to_dfa(struct dfa *dst, const struct nfa *src)
 {
 	struct ptr_queue q;
 	struct rb_tree t;
-	struct nfa_dfa_pair *pair, *next_pair;
-	size_t nfa_index, dfa_index, nfa_index_next;
-	size_t state, trans_cnt;
-	size_t *nfa_trans;
-	unsigned int i;
-	int ret = 0, rb_added;
+	const struct nfa_dfa_pair *pair;
+	struct nfa_dfa_pair *next_pair = NULL;
+	size_t nfa_index;
+	size_t dfa_index;
+	int rb_added;
 	bool final;
-
-	if (ptr_queue_init(&q) != 0) {
-		ret = 1;
-		goto fail_queue;
-	}
-
-	if (rb_tree_init(&t) != 0) {
-		ret = 2;
-		goto fail_rb;
-	}
+	bool failure = false;
 
 	nfa_index = nfa_get_initial_state(src);
+
+	ptr_queue_init(&q);
+
+	rb_tree_init(&t);
+
 	if (dfa_add_state(dst, &dfa_index) != 0) {
-		ret = 3;
-		goto fail;
+		failure = true;
+	} else if ((next_pair = nfa_dfa_pair_alloc()) == NULL) {
+		failure = true;
+	} else if (nfa_dfa_pair_add(&next_pair, nfa_index) != 0) {
+		failure = true;
+	} else if (rb_tree_try_add(&t, next_pair) != 0) {
+		failure = true;
+	} else {
+		next_pair->dfa_state = dfa_index;
 	}
 
-	next_pair = nfa_dfa_pair_alloc();
-	if (next_pair == NULL) {
-		ret = 4;
-		goto fail;
-	}
-
-	if (nfa_dfa_pair_add(&next_pair, nfa_index) != 0) {
+	if (failure) {
 		nfa_dfa_pair_free(next_pair);
-		ret = 5;
-		goto fail;
 	}
 
-	next_pair->dfa_state = dfa_index;
+	pair = next_pair;
 
-	if (rb_tree_try_add(&t, next_pair) != 0) {
-		nfa_dfa_pair_free(next_pair);
-		ret = 6;
-		goto fail;
-	}
-
-	if (ptr_queue_push(&q, next_pair) != 0) {
-		ret = 7;
-		goto fail;
-	}
-
-	while ((pair = ptr_queue_pop(&q)) != NULL) {
-		for (i = 0; i < 256; i++) {
-			next_pair = nfa_dfa_pair_alloc();
+	do {
+		for (unsigned int i = 0; i < 256 && !failure; i++) {
+			next_pair = nfa_dfa_pair_next_state(src, pair,
+							    (unsigned char)i,
+							    &final);
 			if (next_pair == NULL) {
-				ret = 4;
-				goto fail;
-			}
-			final = false;
-
-			for (state = 0; state < pair->nfa_count; state++) {
-				nfa_index = pair->nfa_states[state];
-
-				trans_cnt = nfa_get_trans(src, nfa_index,
-							  i, &nfa_trans);
-
-				for (; trans_cnt > 0; trans_cnt--) {
-					nfa_index_next = nfa_trans[trans_cnt - 1];
-
-					if (nfa_dfa_pair_add(&next_pair,
-							     nfa_index_next) != 0) {
-						nfa_dfa_pair_free(next_pair);
-						ret = 5;
-						goto fail;
-					}
-
-					if (!final &&
-					    nfa_state_is_final(src,
-							       nfa_index_next)) {
-						final = true;
-					}
-				}
+				failure = true;
+				break;
 			}
 
 			rb_added = rb_tree_try_add(&t, next_pair);
 
 			if (rb_added == 0) {
-				dfa_add_state(dst, &dfa_index);
-				dfa_state_set_final(dst, dfa_index, final);
-				next_pair->dfa_state = dfa_index;
-				if (ptr_queue_push(&q, next_pair) != 0) {
-					ret = 7;
-					goto fail;
+				if (dfa_add_state(dst, &dfa_index) != 0) {
+					failure = true;
+				} else {
+					dfa_state_set_final(dst, dfa_index,
+							    final);
+					next_pair->dfa_state = dfa_index;
+					failure = ptr_queue_push(&q, next_pair) != 0;
 				}
 			} else if (rb_added == 1) {
 				dfa_index = next_pair->dfa_state;
 				nfa_dfa_pair_free(next_pair);
 			} else {
 				nfa_dfa_pair_free(next_pair);
-				ret = 6;
-				goto fail;
+				failure = true;
 			}
 
-			if (dfa_add_trans(dst, pair->dfa_state, i, dfa_index) != 0) {
-				ret = 8;
-				goto fail;
+			if (!failure &&
+			    dfa_add_trans(dst, pair->dfa_state,
+					  (unsigned char)i, dfa_index) != 0) {
+				failure = true;
 			}
 		}
-	}
+	} while ((pair = ptr_queue_pop(&q)) != NULL && !failure);
 
 	/*
 	 * @todo Add not so fragile interface for setting up comment property.
 	 */
-	dst->comment_size = src->comment_size;
-	dst->comment = realloc(dst->comment, dst->comment_size);
-	memcpy(dst->comment, src->comment, dst->comment_size);
+	if (!failure) {
+		dst->comment_size = src->comment_size;
+		dst->comment = realloc(dst->comment, dst->comment_size);
+		memcpy(dst->comment, src->comment, dst->comment_size);
+	}
 
-fail:
 	rb_tree_deinit(&t);
-fail_rb:
 	ptr_queue_deinit(&q);
-fail_queue:
 
-	return ret;
+	return !failure ? 0 : 1;
 }
