@@ -173,20 +173,14 @@ int main(int argc, char **argv)
 		} else {
 			regexp_cnt = 0;
 			for (int i = 0; i < arguments.input_cnt; i++) {
-#define REGEXP_BUFFER_SIZE	(1024 * 16)
 				FILE	*file;
-				char	buffer[REGEXP_BUFFER_SIZE];
+				char	*next_regexp;
 				file = fopen(arguments.input[i], "r");
 				if (file == NULL)
 					continue;
-				while (fgets(buffer, REGEXP_BUFFER_SIZE, file) != NULL) {
-					if (strlen(buffer) == REGEXP_BUFFER_SIZE - 1) {
-						/* bad */
-					}
+				while (fscanf(file, "%ms", &next_regexp) == 1) {
 					regexp = realloc(regexp, sizeof(char *) * (regexp_cnt + 1));
-					regexp[regexp_cnt] = malloc(strlen(buffer) + 1);
-					memcpy(regexp[regexp_cnt], buffer,
-					       strlen(buffer) + 1);
+					regexp[regexp_cnt] = next_regexp;
 					regexp_cnt++;
 				}
 				fclose(file);
