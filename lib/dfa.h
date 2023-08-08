@@ -14,6 +14,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdio.h>
 
 /** flag that shows if the state is final */
 #define DFA_FLAG_FINAL		(0x01)
@@ -283,5 +284,13 @@ int dfa_save_to_file(const struct dfa *dfa, char *filename);
  * @return		0 on success
  */
 int dfa_load_from_file(struct dfa *dfa, char *filename);
+
+/**
+ * Print the dfa in Graphviz format.
+ *
+ * @param stream	Output stream.
+ * @param dfa		DFA to be printed.
+ */
+void dfa_graphviz(FILE *stream, const struct dfa *dfa);
 
 #endif /** REFA_DFA_H @} */
