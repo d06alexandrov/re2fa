@@ -38,6 +38,7 @@ static struct argp_option options[] = {
 	{"verbose",	'v',		0,	0, "Verbose output", 2},
 	{"join",	'j',		0,	0, "Join inputs into one output", 1},
 	{"minimize",	'm',		0,	0, "Minimize automaton", 1},
+	{"print-gv",	'g',		0,	0, "Print Graphviz representation of automaton", 2},
 	{0}
 };
 
@@ -52,6 +53,7 @@ struct arguments {
 	int	verbose;
 	int	join;
 	int	minimize;
+	int	gv;
 
 	int	thread_cnt;
 };
@@ -110,6 +112,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 	case 'v':
 		args->verbose = 1;
 		break;
+	case 'g':
+		args->gv = 1;
+		break;
 	case ARGP_KEY_ARG:
 		args->input = realloc(args->input,
 				      sizeof(char *) * (args->input_cnt + 1));
@@ -142,6 +147,7 @@ int main(int argc, char **argv)
 	arguments.output_path	= NULL;
 	arguments.output_type	= FAT_DFA_FILE;
 	arguments.verbose	= 0;
+	arguments.gv		= 0;
 	arguments.join		= 0;
 	arguments.minimize	= 0;
 	arguments.thread_cnt	= 1;
@@ -227,9 +233,10 @@ int main(int argc, char **argv)
 				size_t	before = dfa[i].state_cnt;
 				dfa_minimize(&dfa[i]);
 				if (arguments.verbose) {
-					printf("dfa minimized %zu->%zu\n",
-					       before,
-					       dfa[i].state_cnt);
+					fprintf(stderr,
+						"dfa minimized %zu->%zu\n",
+						before,
+						dfa[i].state_cnt);
 				}
 			}
 
@@ -242,10 +249,18 @@ int main(int argc, char **argv)
 
 	if (arguments.verbose)
 		for (int j = 0; j < dfa_cnt; j++) {
-			printf("[dfa]\n"
-			       "  state cnt: %zu, bps: %d\n",
-				dfa[j].state_cnt, dfa[j].bps);
+			fprintf(stderr, "[dfa]\n"
+					"  state cnt: %zu\n",
+					dfa[j].state_cnt);
 		}
+
+	if (arguments.gv) {
+		if (dfa_cnt == 1) {
+			dfa_graphviz(stdout, &dfa[0]);
+		} else {
+			fprintf(stderr, "You can print only 1 DFA\n");
+		}
+	}
 
 	if (dfa_cnt > 1 && arguments.join) {
 		main_dfa_join(dfa, dfa_cnt, arguments.thread_cnt);

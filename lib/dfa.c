@@ -36,7 +36,6 @@
 
 static int dfa_state_set_deadend(struct dfa *dfa, size_t state, int deadend);
 static int dfa_state_calc_deadend(struct dfa *dfa, size_t state);
-static void dfa_print(const struct dfa *dfa);
 
 static int max_to_bps(size_t max)
 {
@@ -1086,20 +1085,22 @@ out_err:
 }
 
 
-static void dfa_print_char(const unsigned char a)
+static void dfa_print_char(FILE *stream, const unsigned char a)
 {
 	if (isprint(a)) {
 		if (a == '"' || a == '-' || a == '\\')
-			printf("\\");
-		printf("%c", a);
+			fprintf(stream, "\\");
+		fprintf(stream, "%c", a);
 	} else {
-		printf("0x%02X", a);
+		fprintf(stream, "0x%02X", a);
 	}
 }
 
-void dfa_print(const struct dfa *src)
+void dfa_graphviz(FILE *stream, const struct dfa *src)
 {
-	printf("#dfa states: %zu, first: %zu \n", src->state_cnt, src->first_index);
+	fprintf(stream, "digraph DFA{\n");
+	fprintf(stream, "#dfa states: %zu, first: %zu \n",
+		src->state_cnt, src->first_index);
 
 	for (size_t i = 0; i < src->state_cnt; i++) {
 		printf("{node [shape = %s, %s]; \"%zu\";}\n",
@@ -1109,11 +1110,9 @@ void dfa_print(const struct dfa *src)
 	}
 
 	for (size_t i = 0; i < src->state_cnt; i++) {
-		struct to_and_symb {size_t to; unsigned char symb;}	qu[256];
+		struct to_and_symb {size_t to; unsigned char symb;} qu[256];
 
-
-
-		printf("#node[%zu]\n", i);
+		fprintf(stream, "#node[%zu]\n", i);
 		for (unsigned int j = 0; j < 256; j++) {
 			qu[j].to = dfa_get_trans(src, i, j);
 
@@ -1148,11 +1147,12 @@ void dfa_print(const struct dfa *src)
 
 			unsigned int ub, db;
 			int started = 0;
-			printf(" \"%zu\" -> \"%zu\" [label = \"", i, qu[d_bnd].to);
+			fprintf(stream, " \"%zu\" -> \"%zu\" [label = \"",
+				i, qu[d_bnd].to);
 			if (total_trans > 1)
-				printf("[");
+				fprintf(stream, "[");
 			if (total_trans > 256/2 && total_trans != 256)
-				printf("^");
+				fprintf(stream, "^");
 			for (db = 0; db < 256;)
 				if (symbs[db] == 0) {
 					db++;
@@ -1161,19 +1161,19 @@ void dfa_print(const struct dfa *src)
 
 					ub--;
 					if (db == ub) {
-						dfa_print_char(db);
+						dfa_print_char(stream, db);
 					} else if (ub - db == 1) {
-						dfa_print_char(db);
-						dfa_print_char(ub);
+						dfa_print_char(stream, db);
+						dfa_print_char(stream, ub);
 					} else {
-						dfa_print_char(db);
-						printf("-");
+						dfa_print_char(stream, db);
+						fprintf(stream, "-");
 						if (isprint(ub)) {
 							if (ub == '\\' || ub == '"' || ub == ']')
-								printf("\\");
-							printf("%c", ub);
+								fprintf(stream, "\\");
+							fprintf(stream, "%c", ub);
 						} else {
-							printf("\\x%02X", ub);
+							fprintf(stream, "\\x%02X", ub);
 						}
 					}
 							if (!started) {
@@ -1184,11 +1184,13 @@ void dfa_print(const struct dfa *src)
 
 			j = u_bnd - 1;
 			if (total_trans > 1)
-				printf("]");
-			printf("\"];\n");
+				fprintf(stream, "]");
+			fprintf(stream, "\"];\n");
 		}
 
 	}
+
+	fprintf(stream, "}\n");
 }
 
 #define QUEUE_BLOCK_SIZE	(4096 / sizeof(size_t) - 3)
